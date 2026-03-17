@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfileAndRole = useCallback(async (userId: string) => {
     try {
       // Fetch role via security definer function (bypasses RLS)
-      const { data: roleData } = await supabase.rpc('get_user_role' as string, {
+      const { data: roleData } = await (supabase.rpc as any)('get_user_role', {
         _user_id: userId,
       });
       setRole((roleData as UserRole) ?? null);
