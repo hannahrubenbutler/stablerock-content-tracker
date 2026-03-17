@@ -276,6 +276,7 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
                         ) : (
                           <span>{r.owner || '–'}</span>
                         )}
+                      </td>
                       <td className="px-3 py-2 text-center text-muted-foreground">
                         {fc > 0 && <span className="mr-1">📎{fc}</span>}
                         {cc > 0 && <span>💬{cc}</span>}
