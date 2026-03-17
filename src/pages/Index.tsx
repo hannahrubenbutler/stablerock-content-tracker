@@ -1,16 +1,55 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import AppHeader, { TabName } from '@/components/AppHeader';
+import Dashboard from '@/components/Dashboard';
+import AllRequests from '@/components/AllRequests';
+import CalendarView from '@/components/CalendarView';
+import SubmitForm from '@/components/SubmitForm';
+import PublishedView from '@/components/PublishedView';
+import AssetsView from '@/components/AssetsView';
+import DetailModal from '@/components/DetailModal';
+import { Request } from '@/hooks/useData';
+import { Stage } from '@/lib/constants';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+export default function Index() {
+  const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [stageFilter, setStageFilter] = useState<Stage | null>(null);
+
+  const handleStageFilter = (stage: Stage) => {
+    setStageFilter(stage);
+    setActiveTab('All Requests');
+  };
+
+  const handleTabChange = (tab: TabName) => {
+    setActiveTab(tab);
+    if (tab !== 'All Requests') setStageFilter(null);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} />
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        <h2 className="text-lg font-semibold font-body text-foreground mb-4">{activeTab}</h2>
+
+        {activeTab === 'Dashboard' && (
+          <Dashboard onRequestClick={setSelectedRequest} onStageFilter={handleStageFilter} />
+        )}
+        {activeTab === 'All Requests' && (
+          <AllRequests onRequestClick={setSelectedRequest} initialStageFilter={stageFilter} />
+        )}
+        {activeTab === 'Calendar' && (
+          <CalendarView onRequestClick={setSelectedRequest} />
+        )}
+        {activeTab === 'Submit' && <SubmitForm />}
+        {activeTab === 'Published' && (
+          <PublishedView onRequestClick={setSelectedRequest} />
+        )}
+        {activeTab === 'Assets' && <AssetsView />}
+      </main>
+
+      {selectedRequest && (
+        <DetailModal request={selectedRequest} onClose={() => setSelectedRequest(null)} />
+      )}
     </div>
   );
-};
-
-const Index = PlaceholderIndex;
-
-export default Index;
+}

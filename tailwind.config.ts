@@ -13,6 +13,15 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ["'Space Mono'", "monospace"],
+        body: ["'Inter'", "sans-serif"],
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,28 +66,35 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        // Service lines
+        sl: {
+          investment: "#1A5276",
+          accounting: "#117A65",
+          insurance: "#6C3483",
+          hr: "#C0392B",
+          peo: "#D35400",
+          general: "#2C3E50",
+        },
+        // Content types
+        ct: {
+          linkedin: "#2980B9",
+          blog: "#E67E22",
+          seo: "#27AE60",
+          "email-campaign": "#8E44AD",
+          newsletter: "#7D3C98",
+          event: "#C0392B",
+          landing: "#34495E",
+          website: "#34495E",
+        },
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
