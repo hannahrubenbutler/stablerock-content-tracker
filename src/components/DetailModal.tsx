@@ -537,30 +537,32 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               </>
             )}
 
-            {/* Delete — with confirmation dialog */}
-            <div className="pt-4 border-t border-border">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="text-[11px] font-body text-destructive hover:underline">
-                    Delete this request
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this request?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete "{request.title}" and all associated comments, files, and creative versions. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Yes, Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            {/* Delete — admin only, with confirmation dialog */}
+            {isAdmin && (
+              <div className="pt-4 border-t border-border">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-[11px] font-body text-destructive hover:underline">
+                      Delete this request
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this request?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{request.title}" and all associated comments, files, and creative versions. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Yes, Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
         </div>
       </div>
