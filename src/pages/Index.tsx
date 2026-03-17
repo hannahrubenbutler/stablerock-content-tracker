@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppHeader, { TabName } from '@/components/AppHeader';
 import Dashboard from '@/components/Dashboard';
 import AllRequests from '@/components/AllRequests';
@@ -7,13 +7,20 @@ import SubmitForm from '@/components/SubmitForm';
 import PublishedView from '@/components/PublishedView';
 import AssetsView from '@/components/AssetsView';
 import DetailModal from '@/components/DetailModal';
-import { Request } from '@/hooks/useData';
+import { Request, useRequests } from '@/hooks/useData';
 import { Stage } from '@/lib/constants';
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [stageFilter, setStageFilter] = useState<Stage | null>(null);
+  const { data: requests = [] } = useRequests();
+
+  const needsActionCount = useMemo(() => {
+    return requests.filter(
+      (r) => r.what_needed_from_client && r.what_needed_from_client.trim().length > 0 && r.stage !== 'Published'
+    ).length;
+  }, [requests]);
 
   const handleStageFilter = (stage: Stage) => {
     setStageFilter(stage);
@@ -27,7 +34,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} />
+      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} needsActionCount={needsActionCount} />
       <main className="max-w-7xl mx-auto px-4 py-6">
         <h2 className="text-lg font-semibold font-body text-foreground mb-4">{activeTab}</h2>
 
@@ -40,7 +47,9 @@ export default function Index() {
         {activeTab === 'Calendar' && (
           <CalendarView onRequestClick={setSelectedRequest} />
         )}
-        {activeTab === 'Submit' && <SubmitForm />}
+        {activeTab === 'Submit' && (
+          <SubmitForm onNavigateToRequests={() => setActiveTab('All Requests')} />
+        )}
         {activeTab === 'Published' && (
           <PublishedView onRequestClick={setSelectedRequest} />
         )}

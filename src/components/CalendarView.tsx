@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
-import { CONTENT_TYPE_COLORS, SERVICE_LINE_COLORS, SERVICE_LINES } from '@/lib/constants';
+import { CONTENT_TYPE_COLORS, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS } from '@/lib/constants';
 import { ContentTypeBadge } from '@/components/Badges';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO,
@@ -88,17 +88,19 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
           {days.allDays.map((day) => {
             const key = format(day, 'yyyy-MM-dd');
             const dayReqs = requestsByDate[key] || [];
+            const today = isToday(day);
             return (
-              <div key={key} className={`min-h-[80px] border-b border-r border-border p-1 ${isToday(day) ? 'bg-accent/10' : ''}`}>
-                <div className={`text-xs font-body mb-1 ${isToday(day) ? 'text-accent font-bold' : 'text-muted-foreground'}`}>
+              <div key={key} className={`min-h-[80px] border-b border-r border-border p-1 ${today ? 'bg-accent/10' : ''}`}>
+                <div className={`text-xs font-body mb-1 flex items-center gap-1 ${today ? 'text-accent font-bold' : 'text-muted-foreground'}`}>
                   {format(day, 'd')}
+                  {today && <span className="text-[9px] bg-accent text-accent-foreground px-1 rounded">Today</span>}
                 </div>
                 <div className="space-y-0.5">
                   {dayReqs.slice(0, 3).map((r) => (
                     <button
                       key={r.id}
                       onClick={() => onRequestClick(r)}
-                      className="w-full text-left text-[10px] font-body rounded px-1 py-0.5 truncate block"
+                      className="w-full text-left text-[10px] font-body rounded px-1 py-0.5 truncate block relative"
                       style={{
                         backgroundColor: CONTENT_TYPE_COLORS[r.content_type] || '#6B7280',
                         borderLeft: `3px solid ${SERVICE_LINE_COLORS[r.service_line] || '#6B7280'}`,
@@ -107,6 +109,12 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
                     >
                       {r.title}
                       {renderRangeBadge(r)}
+                      {/* Stage dot */}
+                      <span
+                        className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: STAGE_COLORS[r.stage] || '#6B7280' }}
+                        title={r.stage}
+                      />
                     </button>
                   ))}
                   {dayReqs.length > 3 && (
@@ -119,6 +127,13 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
         </div>
       </div>
 
+      {/* Empty month state */}
+      {monthRequests.length === 0 && (
+        <p className="text-sm text-muted-foreground font-body py-4 text-center">
+          No content scheduled for {format(currentMonth, 'MMMM yyyy')}. Submit a request to get started.
+        </p>
+      )}
+
       {/* Grouped by Service Line */}
       {groupedByService.length > 0 && (
         <section>
@@ -126,7 +141,10 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {groupedByService.map(([sl, reqs]) => (
               <div key={sl} className="bg-card border border-border rounded p-3" style={{ borderLeftWidth: 4, borderLeftColor: SERVICE_LINE_COLORS[sl] }}>
-                <h3 className="text-xs font-semibold font-body text-foreground mb-2">{sl} ({reqs.length})</h3>
+                <h3 className="text-xs font-semibold font-body text-foreground mb-2 flex items-center gap-2">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SERVICE_LINE_COLORS[sl] }} />
+                  {sl} ({reqs.length})
+                </h3>
                 <div className="space-y-1.5">
                   {reqs.map((r) => {
                     const rr = r as any;

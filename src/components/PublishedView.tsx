@@ -18,7 +18,9 @@ export default function PublishedView({ onRequestClick }: PublishedViewProps) {
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground font-body">{published.length} piece(s) published — proof of value.</p>
       {published.length === 0 ? (
-        <p className="text-sm text-muted-foreground font-body py-8 text-center">No published content yet.</p>
+        <p className="text-sm text-muted-foreground font-body py-8 text-center">
+          Nothing published yet. Content moves here when Archway marks it as Published.
+        </p>
       ) : (
         published.map((r) => {
           const req = r as any;

@@ -1,24 +1,24 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useCreateRequest, useUploadFile } from '@/hooks/useData';
 import { SERVICE_LINES, CONTENT_TYPES } from '@/lib/constants';
 import { toast } from 'sonner';
 
 type DateMode = 'specific' | 'range' | 'flexible';
 
-export default function SubmitForm() {
+export default function SubmitForm({ onNavigateToRequests }: { onNavigateToRequests?: () => void }) {
   const createRequest = useCreateRequest();
   const uploadFile = useUploadFile();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     title: '',
     service_line: '',
     priority: 'Medium',
     context: '',
     assets_available: '',
-    submitter_name: '',
+    submitter_name: typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : '',
     contact_person: '',
-  });
+  }));
 
   const [dateMode, setDateMode] = useState<DateMode>('specific');
   const [targetDate, setTargetDate] = useState('');
@@ -31,6 +31,13 @@ export default function SubmitForm() {
   const [notSure, setNotSure] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Persist submitter name
+  useEffect(() => {
+    if (form.submitter_name) {
+      localStorage.setItem('sr_submitter_name', form.submitter_name);
+    }
+  }, [form.submitter_name]);
 
   const toggleType = (ct: string) => {
     setNotSure(false);
@@ -97,8 +104,21 @@ export default function SubmitForm() {
           });
         }
       }
-      toast.success(`${typesToCreate.length} request(s) sent to Archway!`);
-      setForm({ title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', submitter_name: '', contact_person: '' });
+      toast.success(
+        <div>
+          <p className="font-medium">{typesToCreate.length} request(s) sent to Archway!</p>
+          <p className="text-xs mt-1">
+            Your request has been sent. Track it on the{' '}
+            {onNavigateToRequests ? (
+              <button onClick={onNavigateToRequests} className="underline font-medium">All Requests</button>
+            ) : (
+              <span className="font-medium">All Requests</span>
+            )} tab.
+          </p>
+        </div>,
+        { duration: 6000 }
+      );
+      setForm((prev) => ({ ...prev, title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', contact_person: '' }));
       setSelectedTypes([]);
       setNotSure(false);
       setSelectedFiles([]);
@@ -130,6 +150,7 @@ export default function SubmitForm() {
           className={inputClass}
           placeholder="Give it a short name, e.g. ADV Deadline Reminder, IM Launch Post"
         />
+        <p className="text-[10px] text-muted-foreground font-body mt-1">This is what shows up in the calendar and request list.</p>
       </div>
 
       {/* Service Line + Priority */}
@@ -185,14 +206,14 @@ export default function SubmitForm() {
             onClick={toggleNotSure}
             className={`text-xs font-body px-3 py-1.5 rounded transition-colors ${
               notSure
-                ? 'bg-accent text-accent-foreground border-accent border'
-                : 'bg-card text-muted-foreground border-dashed border-2 border-border hover:border-accent'
+                ? 'bg-muted text-foreground border-accent border-2 border-dashed'
+                : 'bg-card text-muted-foreground/60 border-dashed border-2 border-border hover:border-accent italic'
             }`}
           >
             Not sure
           </button>
         </div>
-        <p className="text-[10px] text-muted-foreground font-body mt-1">Pick one or more, or hit "Not sure" and we'll figure it out.</p>
+        <p className="text-[10px] text-muted-foreground font-body mt-1">Select what you think you need, or hit "Not sure" and Archway will decide.</p>
       </div>
 
       {/* Date Section */}
@@ -293,7 +314,7 @@ export default function SubmitForm() {
           value={form.assets_available}
           onChange={(e) => setForm({ ...form, assets_available: e.target.value })}
           className={`${inputClass} min-h-[60px]`}
-          placeholder="Photos, talking points, docs, links, anything helpful"
+          placeholder="Photos, talking points, docs, links, a voice memo link, anything helpful. Or paste a LinkedIn post URL if you want us to repost it."
         />
       </div>
 
@@ -342,7 +363,7 @@ export default function SubmitForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="bg-accent text-accent-foreground px-6 py-2.5 rounded text-sm font-medium font-body hover:opacity-90 disabled:opacity-50 transition-opacity"
+        className="w-full bg-accent text-accent-foreground px-6 py-3 rounded text-sm font-semibold font-body hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {submitting ? 'Sending...' : 'Send to Archway'}
       </button>

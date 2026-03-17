@@ -51,6 +51,17 @@ export const STAGES = [
   'On Hold',
 ] as const;
 
+export const STAGE_COLORS: Record<string, string> = {
+  'Requested': '#F1C40F',
+  'Needs Info': '#E67E22',
+  'In Progress': '#2980B9',
+  'In Simplified': '#8E44AD',
+  'Client Review': '#D4AC0D',
+  'Scheduled': '#1ABC9C',
+  'Published': '#27AE60',
+  'On Hold': '#95A5A6',
+};
+
 export const PRIORITY_COLORS: Record<string, string> = {
   'High': '#C0392B',
   'Medium': '#F1C40F',

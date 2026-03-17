@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, Stage } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, STAGE_COLORS, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 
@@ -47,6 +47,18 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
     );
   }, [requests]);
 
+  // Group needs-client-action by contact person
+  const needsClientGrouped = useMemo(() => {
+    const groups: Record<string, Request[]> = {};
+    needsClientAction.forEach((r) => {
+      const person = (r as any).contact_person || r.owner || 'Unassigned';
+      if (!groups[person]) groups[person] = [];
+      groups[person].push(r);
+    });
+    // Sort groups by count descending
+    return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+  }, [needsClientAction]);
+
   const months = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 4 }, (_, i) => {
@@ -81,6 +93,40 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
     }));
   }, [requests, months]);
 
+  const renderWeekItem = (r: Request) => {
+    const req = r as any;
+    return (
+      <button
+        key={r.id}
+        onClick={() => onRequestClick(r)}
+        className="w-full text-left bg-card border border-border rounded px-3 py-2 hover:border-accent transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <PriorityDot priority={r.priority} />
+          <ServiceLineBadge label={r.service_line} />
+          <ContentTypeBadge label={r.content_type} />
+          <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+          <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
+        </div>
+        {r.what_needed_from_client && (
+          <div className="ml-8 mt-1 text-[11px] font-body text-destructive">
+            ⚠ {r.what_needed_from_client}
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  // Grid totals helper
+  const computeRowTotal = (counts: number[]) => counts.reduce((a, b) => a + b, 0);
+  const computeColumnTotals = (rows: { counts: number[] }[]) => {
+    if (rows.length === 0) return [];
+    return rows[0].counts.map((_, colIdx) => rows.reduce((sum, row) => sum + row.counts[colIdx], 0));
+  };
+
+  const slColumnTotals = useMemo(() => computeColumnTotals(serviceLineMonthly), [serviceLineMonthly]);
+  const ctColumnTotals = useMemo(() => computeColumnTotals(contentTypeMonthly), [contentTypeMonthly]);
+
   return (
     <div className="space-y-6">
       {/* Stage Cards */}
@@ -90,6 +136,7 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
             key={stage}
             onClick={() => onStageFilter(stage)}
             className="bg-card border border-border rounded p-3 text-center hover:border-accent transition-colors"
+            style={{ borderTopWidth: 3, borderTopColor: STAGE_COLORS[stage] }}
           >
             <div className="text-2xl font-bold font-body text-foreground">{stageCounts[stage]}</div>
             <div className="text-xs text-muted-foreground font-body mt-1">{stage}</div>
@@ -103,21 +150,7 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
         {thisWeek.length === 0 ? (
           <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
         ) : (
-          <div className="space-y-1">
-            {thisWeek.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => onRequestClick(r)}
-                className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
-              >
-                <PriorityDot priority={r.priority} />
-                <ServiceLineBadge label={r.service_line} />
-                <ContentTypeBadge label={r.content_type} />
-                <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-                <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
-              </button>
-            ))}
-          </div>
+          <div className="space-y-1">{thisWeek.map(renderWeekItem)}</div>
         )}
       </section>
 
@@ -127,19 +160,38 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
         {nextWeek.length === 0 ? (
           <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
         ) : (
-          <div className="space-y-1">
-            {nextWeek.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => onRequestClick(r)}
-                className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
-              >
-                <PriorityDot priority={r.priority} />
-                <ServiceLineBadge label={r.service_line} />
-                <ContentTypeBadge label={r.content_type} />
-                <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-                <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
-              </button>
+          <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
+        )}
+      </section>
+
+      {/* Needs Client Action — moved up */}
+      <section>
+        <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Client Action ({needsClientAction.length})</h2>
+        {needsClientGrouped.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body">Nothing needs your attention right now.</p>
+        ) : (
+          <div className="space-y-4">
+            {needsClientGrouped.map(([person, items]) => (
+              <div key={person}>
+                <h3 className="text-xs font-semibold font-body text-foreground mb-1 flex items-center gap-2">
+                  <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded">{person}</span>
+                  <span className="text-muted-foreground font-normal">{items.length} item{items.length > 1 ? 's' : ''}</span>
+                </h3>
+                <div className="space-y-1">
+                  {items.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => onRequestClick(r)}
+                      className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
+                    >
+                      <ContentTypeBadge label={r.content_type} />
+                      <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+                      <span className="text-xs text-destructive font-body flex-1 truncate">{r.what_needed_from_client}</span>
+                      <span className="text-xs font-body text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0">{r.stage}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -157,22 +209,34 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
                   {months.map((m) => (
                     <th key={m.label} className="px-3 py-2 text-center text-muted-foreground">{m.label}</th>
                   ))}
+                  <th className="px-3 py-2 text-center text-muted-foreground font-semibold">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {serviceLineMonthly.map((sl) => (
-                  <tr key={sl.name} className="border-b border-border last:border-0 hover:bg-muted/50">
-                    <td className="px-3 py-2">
-                      <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: SERVICE_LINE_COLORS[sl.name] }} />
-                      {sl.name}
-                    </td>
-                    {sl.counts.map((c, i) => (
-                      <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                        {c || '–'}
+                {serviceLineMonthly.map((sl) => {
+                  const total = computeRowTotal(sl.counts);
+                  return (
+                    <tr key={sl.name} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-3 py-2">
+                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: SERVICE_LINE_COLORS[sl.name] }} />
+                        {sl.name}
                       </td>
-                    ))}
-                  </tr>
-                ))}
+                      {sl.counts.map((c, i) => (
+                        <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40 bg-destructive/5' : 'text-foreground'}`}>
+                          {c || '–'}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-center font-bold text-foreground">{total}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t-2 border-border bg-muted/30">
+                  <td className="px-3 py-2 font-semibold text-foreground">Total</td>
+                  {slColumnTotals.map((t, i) => (
+                    <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>
+                  ))}
+                  <td className="px-3 py-2 text-center font-bold text-foreground">{slColumnTotals.reduce((a, b) => a + b, 0)}</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -188,50 +252,39 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
                   {months.map((m) => (
                     <th key={m.label} className="px-3 py-2 text-center text-muted-foreground">{m.label}</th>
                   ))}
+                  <th className="px-3 py-2 text-center text-muted-foreground font-semibold">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {contentTypeMonthly.map((ct) => (
-                  <tr key={ct.name} className="border-b border-border last:border-0 hover:bg-muted/50">
-                    <td className="px-3 py-2">
-                      <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: CONTENT_TYPE_COLORS[ct.name] }} />
-                      {ct.name}
-                    </td>
-                    {ct.counts.map((c, i) => (
-                      <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                        {c || '–'}
+                {contentTypeMonthly.map((ct) => {
+                  const total = computeRowTotal(ct.counts);
+                  return (
+                    <tr key={ct.name} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-3 py-2">
+                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: CONTENT_TYPE_COLORS[ct.name] }} />
+                        {ct.name}
                       </td>
-                    ))}
-                  </tr>
-                ))}
+                      {ct.counts.map((c, i) => (
+                        <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40 bg-destructive/5' : 'text-foreground'}`}>
+                          {c || '–'}
+                        </td>
+                      ))}
+                      <td className="px-3 py-2 text-center font-bold text-foreground">{total}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t-2 border-border bg-muted/30">
+                  <td className="px-3 py-2 font-semibold text-foreground">Total</td>
+                  {ctColumnTotals.map((t, i) => (
+                    <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>
+                  ))}
+                  <td className="px-3 py-2 text-center font-bold text-foreground">{ctColumnTotals.reduce((a, b) => a + b, 0)}</td>
+                </tr>
               </tbody>
             </table>
           </div>
         </section>
       </div>
-
-      {/* Needs Client Action */}
-      <section>
-        <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Client Action</h2>
-        {needsClientAction.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">Nothing needs your attention right now.</p>
-        ) : (
-          <div className="space-y-1">
-            {needsClientAction.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => onRequestClick(r)}
-                className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
-              >
-                <ContentTypeBadge label={r.content_type} />
-                <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-                <span className="text-xs text-muted-foreground font-body flex-1 truncate">{r.what_needed_from_client}</span>
-                <span className="text-xs font-body text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0">{r.stage}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }
