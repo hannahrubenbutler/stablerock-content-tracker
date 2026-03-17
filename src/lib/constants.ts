@@ -2,7 +2,6 @@ export const SERVICE_LINES = [
   'Investment Management',
   'Accounting / CFO / Tax',
   'Insurance',
-  'Advisory',
   'HR Advisory',
   'PEO',
   'General / Stable Rock',
@@ -12,7 +11,6 @@ export const SERVICE_LINE_COLORS: Record<string, string> = {
   'Investment Management': '#1A5276',
   'Accounting / CFO / Tax': '#117A65',
   'Insurance': '#6C3483',
-  'Advisory': '#1F618D',
   'HR Advisory': '#C0392B',
   'PEO': '#D35400',
   'General / Stable Rock': '#2C3E50',
@@ -40,6 +38,18 @@ export const CONTENT_TYPE_COLORS: Record<string, string> = {
   'Event Promotion': '#C0392B',
   'Landing Page': '#34495E',
   'Website Update': '#34495E',
+};
+
+export const CONTENT_TYPE_ABBR: Record<string, string> = {
+  'LinkedIn Post': 'LI',
+  'Blog Post': 'BLOG',
+  'SEO Article': 'SEO',
+  'Email Campaign': 'EMAIL',
+  'Email Nurture': 'NURTR',
+  'Newsletter': 'NEWS',
+  'Event Promotion': 'EVENT',
+  'Landing Page': 'LP',
+  'Website Update': 'WEB',
 };
 
 // Internal stages — full granularity for Archway admin

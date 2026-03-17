@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Request, useCreatives, useCreateCreative, useUpdateCreative, useUploadCreativeGraphic, useUpdateRequest } from '@/hooks/useData';
+import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const updateCreative = useUpdateCreative();
   const uploadGraphic = useUploadCreativeGraphic();
   const updateRequest = useUpdateRequest();
+  const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const latest = creatives.length > 0 ? creatives[creatives.length - 1] : null;
@@ -30,9 +32,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
 
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
-  const [approverName, setApproverName] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
-  );
+
+  const approverName = profile?.full_name || profile?.email || '';
 
   const canSendForApproval = !!graphicUrl && !!caption.trim();
 
@@ -53,14 +54,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   };
 
   const handleSendForApproval = async () => {
-    if (!graphicUrl) {
-      toast.error('Please upload a graphic first');
-      return;
-    }
-    if (!caption.trim()) {
-      toast.error('Please add a caption');
-      return;
-    }
+    if (!graphicUrl) { toast.error('Please upload a graphic first'); return; }
+    if (!caption.trim()) { toast.error('Please add a caption'); return; }
     setSaving(true);
     try {
       const scheduledDatetime = scheduledDate && scheduledTime
@@ -76,7 +71,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           version: nextVersion,
           graphic_url: graphicUrl,
           graphic_file_name: graphicFileName,
-          caption: caption,
+          caption,
           platform,
           scheduled_datetime: scheduledDatetime || undefined,
           status: 'Pending Approval',
@@ -104,7 +99,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         });
       }
 
-      // Auto-advance request stage to Client Review
       await updateRequest.mutateAsync({ id: request.id, stage: 'Client Review' } as any);
       toast.success('Sent for approval — request moved to Client Review!');
     } catch {
@@ -115,10 +109,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   };
 
   const handleApprove = async () => {
-    if (!approverName.trim()) {
-      toast.error('Please enter your name');
-      return;
-    }
+    if (!approverName) { toast.error('Could not determine your name'); return; }
     if (!latest) return;
     setSaving(true);
     try {
@@ -129,7 +120,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         approved_at: new Date().toISOString(),
       });
       await updateRequest.mutateAsync({ id: request.id, stage: 'Scheduled' } as any);
-      localStorage.setItem('sr_submitter_name', approverName);
       toast.success('Approved! Post is now scheduled.');
     } catch {
       toast.error('Failed to approve');
@@ -139,10 +129,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   };
 
   const handleRequestChanges = async () => {
-    if (!feedbackText.trim()) {
-      toast.error('Please describe what changes you need');
-      return;
-    }
+    if (!feedbackText.trim()) { toast.error('Please describe what changes you need'); return; }
     if (!latest) return;
     setSaving(true);
     try {
@@ -151,6 +138,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         status: 'Changes Requested',
         feedback: feedbackText,
       });
+      await updateRequest.mutateAsync({ id: request.id, stage: 'Changes Requested' } as any);
       toast.success('Changes requested');
       setShowFeedback(false);
       setFeedbackText('');
@@ -164,24 +152,38 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const inputClass = "w-full text-sm font-body bg-background border border-border rounded px-2 py-1.5 text-foreground";
   const labelClass = "text-xs font-medium font-body text-muted-foreground";
 
+  // Render caption with hashtags highlighted
+  const renderCaption = (text: string) => {
+    return text.split(/(\#\w+)/g).map((part, i) =>
+      part.startsWith('#') ? <span key={i} className="text-[hsl(var(--chart-1))]">{part}</span> : part
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* LinkedIn-style Preview */}
       {graphicUrl && caption && (
         <div className="border border-border rounded-lg overflow-hidden bg-card">
           <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">SR</div>
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
             <div>
-              <div className="text-sm font-semibold font-body text-foreground">Stable Rock</div>
-              <div className="text-[11px] text-muted-foreground font-body">Company • {platform}</div>
+              <div className="text-sm font-semibold font-body text-foreground">Stable Rock Solutions</div>
+              <div className="text-[11px] text-muted-foreground font-body">Company · {platform}</div>
             </div>
           </div>
           <div className="px-4 pb-3">
-            <p className="text-sm font-body text-foreground whitespace-pre-wrap">{caption}</p>
+            <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(caption)}</p>
           </div>
           <img src={graphicUrl} alt="Creative preview" className="w-full" />
+          {/* Faux LinkedIn engagement bar */}
+          <div className="px-4 py-2 border-t border-border flex items-center justify-around text-xs text-muted-foreground font-body">
+            <span>👍 Like</span>
+            <span>💬 Comment</span>
+            <span>🔁 Repost</span>
+            <span>📤 Send</span>
+          </div>
           {latest?.scheduled_datetime && (
-            <div className="px-4 py-2 bg-muted/50 text-xs font-body text-muted-foreground flex items-center gap-2">
+            <div className="px-4 py-2 bg-muted/50 text-xs font-body text-muted-foreground flex items-center gap-2 border-t border-border">
               🕐 Scheduled: {format(parseISO(latest.scheduled_datetime), 'MMM d, yyyy h:mm a')}
             </div>
           )}
@@ -192,40 +194,35 @@ export default function CreativeTab({ request }: CreativeTabProps) {
       {isClientReview && latest && latest.status === 'Pending Approval' && (
         <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-lg p-4">
           <p className="text-xs font-body font-semibold text-foreground">This post is ready for your review.</p>
-          <div className="space-y-2">
-            <input
-              value={approverName}
-              onChange={(e) => setApproverName(e.target.value)}
-              placeholder="Your name"
-              className={inputClass}
-            />
-          </div>
+          <p className="text-[11px] font-body text-muted-foreground">Approving as <span className="font-semibold text-foreground">{approverName}</span></p>
           <div className="flex gap-3">
             <button
               onClick={handleApprove}
               disabled={saving}
-              className="flex-1 text-sm font-body font-semibold bg-[#27AE60] text-white px-4 py-3 rounded-lg hover:opacity-90 disabled:opacity-50"
+              className="flex-1 text-sm font-body font-semibold bg-[hsl(145,63%,42%)] text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50"
             >
               ✓ Approve
             </button>
             <button
               onClick={() => setShowFeedback(true)}
               disabled={saving}
-              className="flex-1 text-sm font-body font-semibold border-2 border-[#E67E22] text-[#E67E22] px-4 py-3 rounded-lg hover:bg-[#E67E22]/10 disabled:opacity-50"
+              className="flex-1 text-sm font-body font-semibold bg-accent text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50"
             >
               ✎ Request Changes
             </button>
           </div>
           {showFeedback && (
             <div className="space-y-2 mt-2">
+              <label className="text-xs font-body font-medium text-muted-foreground">What changes would you like?</label>
               <textarea
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
-                placeholder="Describe what changes you'd like..."
+                placeholder="Be specific so Archway can get it right..."
                 className={`${inputClass} min-h-[80px]`}
+                autoFocus
               />
               <div className="flex gap-2">
-                <button onClick={handleRequestChanges} disabled={saving} className="text-xs font-body bg-[#E67E22] text-white px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50">
+                <button onClick={handleRequestChanges} disabled={saving} className="text-xs font-body bg-accent text-white px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50">
                   Submit Feedback
                 </button>
                 <button onClick={() => setShowFeedback(false)} className="text-xs font-body text-muted-foreground hover:text-foreground">Cancel</button>
@@ -237,15 +234,15 @@ export default function CreativeTab({ request }: CreativeTabProps) {
 
       {/* Approved badge */}
       {latest?.status === 'Approved' && (
-        <div className="bg-[#27AE60]/10 border border-[#27AE60]/30 rounded-lg p-3 text-sm font-body text-foreground">
+        <div className="bg-[hsl(145,63%,42%)]/10 border border-[hsl(145,63%,42%)]/30 rounded-lg p-3 text-sm font-body text-foreground">
           ✓ Approved by {latest.approved_by} on {latest.approved_at && format(parseISO(latest.approved_at), 'MMM d, yyyy \'at\' h:mm a')}
         </div>
       )}
 
       {/* Changes Requested badge */}
       {latest?.status === 'Changes Requested' && (
-        <div className="bg-[#E67E22]/10 border border-[#E67E22]/30 rounded-lg p-3 space-y-1">
-          <p className="text-sm font-body font-semibold text-[#E67E22]">Changes Requested</p>
+        <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 space-y-1">
+          <p className="text-sm font-body font-semibold text-accent">Changes Requested</p>
           <p className="text-xs font-body text-foreground">{latest.feedback}</p>
         </div>
       )}
@@ -342,10 +339,10 @@ export default function CreativeTab({ request }: CreativeTabProps) {
                 {' uploaded '}
                 {format(parseISO(c.created_at), 'MMM d')}
                 {c.status === 'Approved' && c.approved_by && (
-                  <span className="text-[#27AE60]"> — Approved by {c.approved_by} {c.approved_at && format(parseISO(c.approved_at), 'MMM d')}</span>
+                  <span className="text-[hsl(145,63%,42%)]"> — Approved by {c.approved_by} {c.approved_at && format(parseISO(c.approved_at), 'MMM d')}</span>
                 )}
                 {c.status === 'Changes Requested' && c.feedback && (
-                  <span className="text-[#E67E22]"> — Changes requested: "{c.feedback}"</span>
+                  <span className="text-accent"> — Changes requested: "{c.feedback}"</span>
                 )}
                 {c.status === 'Pending Approval' && (
                   <span className="text-accent"> — Awaiting approval</span>

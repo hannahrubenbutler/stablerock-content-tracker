@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { FileImage, FileText } from 'lucide-react';
+import { FileImage } from 'lucide-react';
 
 interface ReviewTabProps {
   onRequestClick: (req: Request) => void;
@@ -176,6 +176,13 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
   );
 }
 
+// Render caption with hashtags in blue
+function renderCaption(text: string) {
+  return text.split(/(\#\w+)/g).map((part, i) =>
+    part.startsWith('#') ? <span key={i} className="text-[hsl(var(--chart-1))]">{part}</span> : part
+  );
+}
+
 function ReviewCard({
   request,
   creative,
@@ -201,10 +208,7 @@ function ReviewCard({
   const approverName = profile?.full_name || profile?.email || '';
 
   const handleApprove = async () => {
-    if (!approverName) {
-      toast.error('Could not determine your name');
-      return;
-    }
+    if (!approverName) { toast.error('Could not determine your name'); return; }
     if (!creative) return;
     setSaving(true);
     try {
@@ -224,10 +228,7 @@ function ReviewCard({
   };
 
   const handleRequestChanges = async () => {
-    if (!feedbackText.trim()) {
-      toast.error('Please describe what changes you need');
-      return;
-    }
+    if (!feedbackText.trim()) { toast.error('Please describe what changes you need'); return; }
     if (!creative) return;
     setSaving(true);
     try {
@@ -247,7 +248,6 @@ function ReviewCard({
     }
   };
 
-  // Determine what image to show: creative graphic > file attachment (if image) > nothing
   const previewImageUrl = creative?.graphic_url
     || (file?.file_type?.startsWith('image') ? file.file_url : null);
 
@@ -255,7 +255,7 @@ function ReviewCard({
 
   return (
     <div className="bg-card rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-      {/* Card header: title + badges + status */}
+      {/* Card header */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="flex-1 min-w-0">
@@ -276,24 +276,31 @@ function ReviewCard({
         </div>
       </div>
 
-      {/* Preview area */}
+      {/* LinkedIn-style preview */}
       {hasPreviewContent ? (
         <div className="mx-4 mb-3 border border-border rounded-lg overflow-hidden bg-background">
           <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">SR</div>
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
             <div>
-              <div className="text-xs font-semibold font-body text-foreground">Stable Rock</div>
-              <div className="text-[10px] text-muted-foreground font-body">{creative?.platform || 'LinkedIn'}</div>
+              <div className="text-xs font-semibold font-body text-foreground">Stable Rock Solutions</div>
+              <div className="text-[10px] text-muted-foreground font-body">Company · {creative?.platform || 'LinkedIn'}</div>
             </div>
           </div>
           {creative?.caption && (
             <div className="px-3 pb-2">
-              <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">{creative.caption}</p>
+              <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">{renderCaption(creative.caption)}</p>
             </div>
           )}
           {previewImageUrl && (
             <img src={previewImageUrl} alt="" className="w-full" />
           )}
+          {/* Faux engagement bar */}
+          <div className="px-3 py-1.5 border-t border-border flex items-center justify-around text-[10px] text-muted-foreground font-body">
+            <span>👍 Like</span>
+            <span>💬 Comment</span>
+            <span>🔁 Repost</span>
+            <span>📤 Send</span>
+          </div>
         </div>
       ) : (
         <div className="mx-4 mb-3 py-6 border border-dashed border-border rounded-lg bg-muted/50 flex flex-col items-center justify-center gap-1.5">
@@ -312,7 +319,7 @@ function ReviewCard({
             <button
               onClick={handleApprove}
               disabled={saving}
-              className="flex-1 text-sm font-body font-semibold bg-[hsl(var(--chart-2))] text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="flex-1 text-sm font-body font-semibold bg-[hsl(145,63%,42%)] text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               ✓ Approve
             </button>

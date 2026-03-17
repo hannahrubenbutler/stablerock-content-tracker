@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
-import { CONTENT_TYPE_COLORS, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS } from '@/lib/constants';
+import { CONTENT_TYPE_COLORS, CONTENT_TYPE_ABBR, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS } from '@/lib/constants';
 import { ContentTypeBadge } from '@/components/Badges';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO,
@@ -17,7 +17,6 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [personFilter, setPersonFilter] = useState<string>('');
 
-  // Derive people list for filter
   const people = useMemo(() => {
     const set = new Set<string>();
     requests.forEach((r) => {
@@ -28,7 +27,6 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
     return Array.from(set).sort();
   }, [requests]);
 
-  // Apply filters
   const filteredRequests = useMemo(() => {
     return requests.filter((r) => {
       if (serviceFilter && r.service_line !== serviceFilter) return false;
@@ -89,6 +87,14 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
     return null;
   };
 
+  // Stage dot color mapping
+  const getStageDotColor = (stage: string) => {
+    if (stage === 'Requested' || stage === 'Needs Info') return '#95A5A6';
+    if (stage === 'In Progress' || stage === 'In Simplified') return '#F1C40F';
+    if (stage === 'Approved' || stage === 'Scheduled' || stage === 'Published') return '#27AE60';
+    return STAGE_COLORS[stage] || '#6B7280';
+  };
+
   const hasActiveFilter = serviceFilter || personFilter;
 
   return (
@@ -137,26 +143,30 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
                   {today && <span className="text-[9px] bg-accent text-accent-foreground px-1 rounded">Today</span>}
                 </div>
                 <div className="space-y-0.5">
-                  {dayReqs.slice(0, 3).map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => onRequestClick(r)}
-                      className="w-full text-left text-[10px] font-body rounded px-1 py-0.5 truncate block relative"
-                      style={{
-                        backgroundColor: CONTENT_TYPE_COLORS[r.content_type] || '#6B7280',
-                        borderLeft: `3px solid ${SERVICE_LINE_COLORS[r.service_line] || '#6B7280'}`,
-                        color: '#fff',
-                      }}
-                    >
-                      {r.title}
-                      {renderRangeBadge(r)}
-                      <span
-                        className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: STAGE_COLORS[r.stage] || '#6B7280' }}
-                        title={r.stage}
-                      />
-                    </button>
-                  ))}
+                  {dayReqs.slice(0, 3).map((r) => {
+                    const abbr = CONTENT_TYPE_ABBR[r.content_type] || '';
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => onRequestClick(r)}
+                        className="w-full text-left text-[10px] font-body rounded px-1 py-0.5 truncate block relative"
+                        style={{
+                          backgroundColor: CONTENT_TYPE_COLORS[r.content_type] || '#6B7280',
+                          borderLeft: `3px solid ${SERVICE_LINE_COLORS[r.service_line] || '#6B7280'}`,
+                          color: '#fff',
+                        }}
+                      >
+                        <span className="font-bold mr-0.5">{abbr}</span>
+                        {r.title}
+                        {renderRangeBadge(r)}
+                        <span
+                          className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: getStageDotColor(r.stage) }}
+                          title={r.stage}
+                        />
+                      </button>
+                    );
+                  })}
                   {dayReqs.length > 3 && (
                     <div className="text-[10px] text-muted-foreground font-body px-1">+{dayReqs.length - 3} more</div>
                   )}

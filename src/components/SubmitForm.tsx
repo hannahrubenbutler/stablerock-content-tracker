@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 type DateMode = 'specific' | 'range' | 'flexible';
 
-export default function SubmitForm({ onNavigateToRequests }: { onNavigateToRequests?: () => void }) {
+export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSuccess?: () => void; onNavigateToRequests?: () => void }) {
   const createRequest = useCreateRequest();
   const uploadFile = useUploadFile();
   const { profile } = useAuth();
@@ -34,7 +34,6 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
   const [notSure, setNotSure] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
 
   const toggleType = (ct: string) => {
     setNotSure(false);
@@ -74,6 +73,13 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
       let createdRequestCount = 0;
       let uploadFailureCount = 0;
 
+      // Upload files once, then attach to all requests
+      const uploadedFileBuffers: { name: string; arrayBuffer: ArrayBuffer; type: string }[] = [];
+      for (const file of selectedFiles) {
+        const buf = await file.arrayBuffer();
+        uploadedFileBuffers.push({ name: file.name, arrayBuffer: buf, type: file.type });
+      }
+
       for (const ct of typesToCreate) {
         const newRequest = await createRequest.mutateAsync({
           title: form.title,
@@ -99,9 +105,10 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
 
         createdRequestCount += 1;
 
-        for (const file of selectedFiles) {
+        for (const fileData of uploadedFileBuffers) {
           try {
-              await uploadFile.mutateAsync({
+            const file = new File([fileData.arrayBuffer], fileData.name, { type: fileData.type });
+            await uploadFile.mutateAsync({
               requestId: newRequest.id,
               file,
               uploadedBy: submitterName || 'Unknown',
@@ -110,7 +117,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
             uploadFailureCount += 1;
             console.error('SubmitForm file upload failed', {
               requestId: newRequest.id,
-              fileName: file.name,
+              fileName: fileData.name,
               uploadError,
             });
           }
@@ -121,12 +128,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
         <div>
           <p className="font-medium">{createdRequestCount} request(s) sent to Archway!</p>
           <p className="text-xs mt-1">
-            Your request has been sent. Track it on the{' '}
-            {onNavigateToRequests ? (
-              <button onClick={onNavigateToRequests} className="underline font-medium">Requests</button>
-            ) : (
-              <span className="font-medium">Requests</span>
-            )} tab.
+            Your request has been sent. Track it on the Requests tab.
           </p>
           {uploadFailureCount > 0 && (
             <p className="text-xs mt-1">
@@ -146,6 +148,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
       setFlexibleDateText('');
       setHasHardDeadline(false);
       setDeadlineText('');
+      onSuccess?.();
+      onNavigateToRequests?.();
     } catch (error) {
       console.error('SubmitForm request creation failed', error);
       toast.error('Failed to submit request');
@@ -158,7 +162,9 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
   const labelClass = "block text-xs font-medium font-body text-foreground mb-1";
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <h2 className="text-lg font-semibold font-body text-foreground">Submit a Request</h2>
+
       {/* Title */}
       <div>
         <label className={labelClass}>Title *</label>

@@ -4,7 +4,6 @@ import Dashboard from '@/components/Dashboard';
 import RequestsTab from '@/components/RequestsTab';
 import ReviewTab from '@/components/ReviewTab';
 import ApprovedTab from '@/components/ApprovedTab';
-import SubmitForm from '@/components/SubmitForm';
 import AdminSettings from '@/components/AdminSettings';
 import DetailModal from '@/components/DetailModal';
 import { Request, useRequests } from '@/hooks/useData';
@@ -34,7 +33,6 @@ export default function Index() {
     'Requests': 'Your Requests',
     'Review': 'Review',
     'Approved': 'Approved',
-    'Submit': 'Submit a Request',
   };
 
   return (
@@ -56,9 +54,6 @@ export default function Index() {
         )}
         {activeTab === 'Approved' && (
           <ApprovedTab onRequestClick={setSelectedRequest} />
-        )}
-        {activeTab === 'Submit' && (
-          <SubmitForm onNavigateToRequests={() => setActiveTab('Requests')} />
         )}
         {activeTab === 'Settings' && isAdmin && <AdminSettings />}
       </main>
