@@ -62,7 +62,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim()) { toast.error('Please give it a title'); return; }
+    if (!form.title.trim()) { toast.error('Please give your request a title'); return; }
+    if (selectedTypes.length === 0 && !notSure) { toast.error('Please select at least one content type, or choose "Not sure"'); return; }
 
     const serviceLine = form.service_line || 'General / Stable Rock';
     const typesToCreate = notSure || selectedTypes.length === 0 ? ['Other'] : selectedTypes;
