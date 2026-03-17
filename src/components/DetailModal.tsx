@@ -70,11 +70,19 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const defaultTab: ModalTab = (request.stage === 'Client Review' || request.stage === 'Scheduled') ? 'Creative' : 'Details';
   const [activeTab, setActiveTab] = useState<ModalTab>(defaultTab);
 
-  const handleStageChange = (newStage: string) => {
+  const handleStageChange = async (newStage: string) => {
     setForm({ ...form, stage: newStage });
     if (newStage === 'Published' && !form.actual_publish_date) {
       setShowPublishPrompt(true);
       setPublishDate(format(new Date(), 'yyyy-MM-dd'));
+    }
+    // Persist stage change immediately
+    try {
+      await updateRequest.mutateAsync({ id: request.id, stage: newStage } as any);
+      toast.success(`Stage updated to ${newStage}`);
+    } catch {
+      toast.error('Failed to update stage');
+      setForm({ ...form, stage: request.stage }); // revert
     }
   };
 
