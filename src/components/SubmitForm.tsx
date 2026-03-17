@@ -367,17 +367,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
         )}
       </div>
 
-      {/* Your Name */}
-      <div>
-        <label className={labelClass}>Your Name</label>
-        <input
-          type="text"
-          value={form.submitter_name}
-          onChange={(e) => setForm({ ...form, submitter_name: e.target.value })}
-          className={inputClass}
-          placeholder="Who is submitting this?"
-        />
-      </div>
+      {/* Submitter identity */}
+      <p className="text-xs font-body text-muted-foreground">Submitting as <span className="font-semibold text-foreground">{submitterName}</span></p>
 
       <button
         type="submit"

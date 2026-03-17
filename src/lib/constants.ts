@@ -12,6 +12,7 @@ export const SERVICE_LINE_COLORS: Record<string, string> = {
   'Investment Management': '#1A5276',
   'Accounting / CFO / Tax': '#117A65',
   'Insurance': '#6C3483',
+  'Advisory': '#1F618D',
   'HR Advisory': '#C0392B',
   'PEO': '#D35400',
   'General / Stable Rock': '#2C3E50',

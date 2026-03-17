@@ -521,12 +521,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                     })}
                   </div>
                   <div className="mt-2 space-y-2">
-                    <input
-                      value={commentName}
-                      onChange={(e) => setCommentName(e.target.value)}
-                      placeholder="Your name"
-                      className={inputClass}
-                    />
+                    <p className="text-xs font-body text-muted-foreground">Posting as <span className="font-semibold text-foreground">{commentName}</span></p>
                     <div className="flex gap-2">
                       <input
                         value={commentText}

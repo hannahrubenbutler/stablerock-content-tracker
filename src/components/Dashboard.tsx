@@ -15,7 +15,10 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
   const { data: requests = [] } = useRequests();
 
   // Quick stats
-  const inProgressCount = useMemo(() => requests.filter((r) => getClientStatus(r.stage).tab === 'requests').length, [requests]);
+  const inProgressCount = useMemo(() => requests.filter((r) => {
+    const cs = getClientStatus(r.stage);
+    return cs.tab === 'requests' && cs.label !== 'On Hold';
+  }).length, [requests]);
   const reviewCount = useMemo(() => requests.filter((r) => {
     const cs = getClientStatus(r.stage);
     return cs.tab === 'review' && cs.label === 'Ready for Review';
