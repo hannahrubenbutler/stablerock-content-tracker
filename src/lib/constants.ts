@@ -2,6 +2,7 @@ export const SERVICE_LINES = [
   'Investment Management',
   'Accounting / CFO / Tax',
   'Insurance',
+  'Advisory',
   'HR Advisory',
   'PEO',
   'General / Stable Rock',
