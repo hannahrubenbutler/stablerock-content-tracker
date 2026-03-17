@@ -9,7 +9,10 @@ type DateMode = 'specific' | 'range' | 'flexible';
 export default function SubmitForm({ onNavigateToRequests }: { onNavigateToRequests?: () => void }) {
   const createRequest = useCreateRequest();
   const uploadFile = useUploadFile();
+  const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const submitterName = profile?.full_name || profile?.email || '';
 
   const [form, setForm] = useState(() => ({
     title: '',
@@ -17,7 +20,6 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
     priority: 'Medium',
     context: '',
     assets_available: '',
-    submitter_name: typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : '',
     contact_person: '',
   }));
 
