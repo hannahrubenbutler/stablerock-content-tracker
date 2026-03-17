@@ -36,9 +36,8 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     return current && !(OWNER_OPTIONS as readonly string[]).includes(current);
   });
   const [form, setForm] = useState<any>({ ...request });
-  const [commentName, setCommentName] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
-  );
+  const { profile } = useAuth();
+  const commentName = profile?.full_name || profile?.email || 'Unknown';
   const [commentText, setCommentText] = useState('');
   const [showPublishPrompt, setShowPublishPrompt] = useState(false);
   const [publishDate, setPublishDate] = useState('');
@@ -71,11 +70,19 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const defaultTab: ModalTab = (request.stage === 'Client Review' || request.stage === 'Scheduled') ? 'Creative' : 'Details';
   const [activeTab, setActiveTab] = useState<ModalTab>(defaultTab);
 
-  const handleStageChange = (newStage: string) => {
+  const handleStageChange = async (newStage: string) => {
     setForm({ ...form, stage: newStage });
     if (newStage === 'Published' && !form.actual_publish_date) {
       setShowPublishPrompt(true);
       setPublishDate(format(new Date(), 'yyyy-MM-dd'));
+    }
+    // Persist stage change immediately
+    try {
+      await updateRequest.mutateAsync({ id: request.id, stage: newStage } as any);
+      toast.success(`Stage updated to ${newStage}`);
+    } catch {
+      toast.error('Failed to update stage');
+      setForm({ ...form, stage: request.stage }); // revert
     }
   };
 
@@ -217,7 +224,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   <TooltipTrigger asChild>
                     <select
                       value={form.stage}
-                      onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+                      onChange={(e) => handleStageChange(e.target.value)}
                       className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
                       style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
                     >
@@ -514,12 +521,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                     })}
                   </div>
                   <div className="mt-2 space-y-2">
-                    <input
-                      value={commentName}
-                      onChange={(e) => setCommentName(e.target.value)}
-                      placeholder="Your name"
-                      className={inputClass}
-                    />
+                    <p className="text-xs font-body text-muted-foreground">Posting as <span className="font-semibold text-foreground">{commentName}</span></p>
                     <div className="flex gap-2">
                       <input
                         value={commentText}

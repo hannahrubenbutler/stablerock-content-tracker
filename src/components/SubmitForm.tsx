@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useCreateRequest, useUploadFile } from '@/hooks/useData';
 import { SERVICE_LINES, CONTENT_TYPES } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 type DateMode = 'specific' | 'range' | 'flexible';
@@ -8,7 +9,10 @@ type DateMode = 'specific' | 'range' | 'flexible';
 export default function SubmitForm({ onNavigateToRequests }: { onNavigateToRequests?: () => void }) {
   const createRequest = useCreateRequest();
   const uploadFile = useUploadFile();
+  const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const submitterName = profile?.full_name || profile?.email || '';
 
   const [form, setForm] = useState(() => ({
     title: '',
@@ -16,7 +20,6 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
     priority: 'Medium',
     context: '',
     assets_available: '',
-    submitter_name: typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : '',
     contact_person: '',
   }));
 
@@ -32,12 +35,6 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Persist submitter name
-  useEffect(() => {
-    if (form.submitter_name) {
-      localStorage.setItem('sr_submitter_name', form.submitter_name);
-    }
-  }, [form.submitter_name]);
 
   const toggleType = (ct: string) => {
     setNotSure(false);
@@ -65,7 +62,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim()) { toast.error('Please give it a title'); return; }
+    if (!form.title.trim()) { toast.error('Please give your request a title'); return; }
+    if (selectedTypes.length === 0 && !notSure) { toast.error('Please select at least one content type, or choose "Not sure"'); return; }
 
     const serviceLine = form.service_line || 'General / Stable Rock';
     const typesToCreate = notSure || selectedTypes.length === 0 ? ['Other'] : selectedTypes;
@@ -88,7 +86,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
           event_promo_date: null,
           context: form.context || null,
           assets_available: form.assets_available || null,
-          submitter_name: form.submitter_name || null,
+          submitter_name: submitterName || null,
           contact_person: form.contact_person || null,
           owner: 'Archway',
           what_needed_from_client: null,
@@ -103,10 +101,10 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
 
         for (const file of selectedFiles) {
           try {
-            await uploadFile.mutateAsync({
+              await uploadFile.mutateAsync({
               requestId: newRequest.id,
               file,
-              uploadedBy: form.submitter_name || 'Unknown',
+              uploadedBy: submitterName || 'Unknown',
             });
           } catch (uploadError) {
             uploadFailureCount += 1;
@@ -138,7 +136,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
         </div>,
         { duration: 6000 }
       );
-      setForm((prev) => ({ ...prev, title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', contact_person: '' }));
+      setForm({ title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', contact_person: '' });
       setSelectedTypes([]);
       setNotSure(false);
       setSelectedFiles([]);
@@ -369,17 +367,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
         )}
       </div>
 
-      {/* Your Name */}
-      <div>
-        <label className={labelClass}>Your Name</label>
-        <input
-          type="text"
-          value={form.submitter_name}
-          onChange={(e) => setForm({ ...form, submitter_name: e.target.value })}
-          className={inputClass}
-          placeholder="Who is submitting this?"
-        />
-      </div>
+      {/* Submitter identity */}
+      <p className="text-xs font-body text-muted-foreground">Submitting as <span className="font-semibold text-foreground">{submitterName}</span></p>
 
       <button
         type="submit"
