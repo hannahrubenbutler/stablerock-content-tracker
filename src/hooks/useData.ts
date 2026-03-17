@@ -171,6 +171,98 @@ export function useUploadFile() {
   });
 }
 
+// Creatives
+export type Creative = {
+  id: string;
+  request_id: string;
+  version: number;
+  graphic_url: string | null;
+  graphic_file_name: string | null;
+  caption: string | null;
+  platform: string;
+  scheduled_datetime: string | null;
+  status: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  feedback: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export function useCreatives(requestId: string) {
+  return useQuery({
+    queryKey: ['creatives', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('creatives')
+        .select('*')
+        .eq('request_id', requestId)
+        .order('version', { ascending: true });
+      if (error) throw error;
+      return data as Creative[];
+    },
+    enabled: !!requestId,
+  });
+}
+
+export function useLatestCreative(requestId: string) {
+  return useQuery({
+    queryKey: ['creatives', requestId, 'latest'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('creatives')
+        .select('*')
+        .eq('request_id', requestId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Creative | null;
+    },
+    enabled: !!requestId,
+  });
+}
+
+export function useCreateCreative() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (creative: { request_id: string; version: number; graphic_url?: string; graphic_file_name?: string; caption?: string; platform?: string; scheduled_datetime?: string; status?: string }) => {
+      const { data, error } = await supabase.from('creatives').insert(creative as any).select().single();
+      if (error) throw error;
+      return data as Creative;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['creatives', data.request_id] });
+    },
+  });
+}
+
+export function useUpdateCreative() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; [key: string]: any }) => {
+      const { data, error } = await supabase.from('creatives').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data as Creative;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['creatives', data.request_id] });
+    },
+  });
+}
+
+export function useUploadCreativeGraphic() {
+  return useMutation({
+    mutationFn: async ({ requestId, file }: { requestId: string; file: File }) => {
+      const filePath = `creatives/${requestId}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
+      return { publicUrl, fileName: file.name };
+    },
+  });
+}
+
 // Batch fetch comment and file counts for all requests
 export function useRequestMetaCounts() {
   return useQuery({
