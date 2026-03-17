@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, addDays, startOfDay } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 
 interface DashboardProps {
   onRequestClick: (req: Request) => void;
@@ -20,12 +20,24 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
   }, [requests]);
 
   const thisWeek = useMemo(() => {
-    const today = startOfDay(new Date());
-    const end = addDays(today, 7);
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
     return requests.filter((r) => {
       if (!r.target_date || r.stage === 'Published') return false;
       const d = parseISO(r.target_date);
-      return d >= today && d <= end;
+      return isWithinInterval(d, { start: weekStart, end: weekEnd });
+    }).sort((a, b) => (a.target_date! > b.target_date! ? 1 : -1));
+  }, [requests]);
+
+  const nextWeek = useMemo(() => {
+    const now = new Date();
+    const nextWeekStart = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    const nextWeekEnd = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    return requests.filter((r) => {
+      if (!r.target_date || r.stage === 'Published') return false;
+      const d = parseISO(r.target_date);
+      return isWithinInterval(d, { start: nextWeekStart, end: nextWeekEnd });
     }).sort((a, b) => (a.target_date! > b.target_date! ? 1 : -1));
   }, [requests]);
 
@@ -89,10 +101,34 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
         {thisWeek.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">No content scheduled this week.</p>
+          <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
         ) : (
           <div className="space-y-1">
             {thisWeek.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => onRequestClick(r)}
+                className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
+              >
+                <PriorityDot priority={r.priority} />
+                <ServiceLineBadge label={r.service_line} />
+                <ContentTypeBadge label={r.content_type} />
+                <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+                <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Next Week */}
+      <section>
+        <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
+        {nextWeek.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
+        ) : (
+          <div className="space-y-1">
+            {nextWeek.map((r) => (
               <button
                 key={r.id}
                 onClick={() => onRequestClick(r)}
