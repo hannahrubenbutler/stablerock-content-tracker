@@ -35,12 +35,6 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Persist submitter name
-  useEffect(() => {
-    if (form.submitter_name) {
-      localStorage.setItem('sr_submitter_name', form.submitter_name);
-    }
-  }, [form.submitter_name]);
 
   const toggleType = (ct: string) => {
     setNotSure(false);
