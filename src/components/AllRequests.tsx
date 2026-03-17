@@ -69,7 +69,13 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
   }, [requests]);
 
   const handleStageChange = (id: string, newStage: string) => {
+    if (!isAdmin) return;
     updateRequest.mutate({ id, stage: newStage as any });
+  };
+
+  const handleOwnerChange = (id: string, newOwner: string) => {
+    if (!isAdmin) return;
+    updateRequest.mutate({ id, owner: newOwner } as any);
   };
 
   const formatDateCell = (r: any) => {
