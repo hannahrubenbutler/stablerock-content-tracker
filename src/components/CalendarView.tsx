@@ -55,6 +55,18 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  const renderRangeBadge = (r: Request) => {
+    const req = r as any;
+    if (req.date_mode === 'range' && req.date_range_end) {
+      return (
+        <span className="ml-0.5 text-[8px] opacity-80">
+          →{format(parseISO(req.date_range_end), 'M/d')}
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Month navigation */}
@@ -94,6 +106,7 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
                       }}
                     >
                       {r.title}
+                      {renderRangeBadge(r)}
                     </button>
                   ))}
                   {dayReqs.length > 3 && (
@@ -115,13 +128,19 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
               <div key={sl} className="bg-card border border-border rounded p-3" style={{ borderLeftWidth: 4, borderLeftColor: SERVICE_LINE_COLORS[sl] }}>
                 <h3 className="text-xs font-semibold font-body text-foreground mb-2">{sl} ({reqs.length})</h3>
                 <div className="space-y-1.5">
-                  {reqs.map((r) => (
-                    <button key={r.id} onClick={() => onRequestClick(r)} className="w-full text-left text-xs font-body text-muted-foreground hover:text-foreground flex items-center gap-2">
-                      <ContentTypeBadge label={r.content_type} />
-                      <span className="truncate flex-1">{r.title}</span>
-                      <span className="shrink-0 text-[10px]">{r.target_date && format(parseISO(r.target_date), 'MMM d')}</span>
-                    </button>
-                  ))}
+                  {reqs.map((r) => {
+                    const rr = r as any;
+                    return (
+                      <button key={r.id} onClick={() => onRequestClick(r)} className="w-full text-left text-xs font-body text-muted-foreground hover:text-foreground flex items-center gap-2">
+                        <ContentTypeBadge label={r.content_type} />
+                        <span className="truncate flex-1">{r.title}</span>
+                        <span className="shrink-0 text-[10px]">
+                          {r.target_date && format(parseISO(r.target_date), 'MMM d')}
+                          {rr.date_mode === 'range' && rr.date_range_end && ` – ${format(parseISO(rr.date_range_end), 'MMM d')}`}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
