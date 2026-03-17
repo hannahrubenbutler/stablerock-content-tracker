@@ -36,9 +36,8 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     return current && !(OWNER_OPTIONS as readonly string[]).includes(current);
   });
   const [form, setForm] = useState<any>({ ...request });
-  const [commentName, setCommentName] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
-  );
+  const { profile } = useAuth();
+  const commentName = profile?.full_name || profile?.email || 'Unknown';
   const [commentText, setCommentText] = useState('');
   const [showPublishPrompt, setShowPublishPrompt] = useState(false);
   const [publishDate, setPublishDate] = useState('');
