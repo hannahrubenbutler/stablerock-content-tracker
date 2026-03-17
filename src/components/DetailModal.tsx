@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import CreativeTab from '@/components/CreativeTab';
