@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { FileImage, FileText } from 'lucide-react';
 
 interface ReviewTabProps {
   onRequestClick: (req: Request) => void;
@@ -40,7 +41,6 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
 
   const requestIds = reviewRequests.map((r) => r.id);
 
-  // Fetch latest creative for each review request
   const { data: creativeMap = {} } = useQuery({
     queryKey: ['review-creatives', requestIds],
     queryFn: async () => {
@@ -55,6 +55,28 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
       (data || []).forEach((c: any) => {
         if (!map[c.request_id]) {
           map[c.request_id] = c;
+        }
+      });
+      return map;
+    },
+    enabled: requestIds.length > 0,
+  });
+
+  // Fetch file attachments for requests without creatives
+  const { data: fileMap = {} } = useQuery({
+    queryKey: ['review-files', requestIds],
+    queryFn: async () => {
+      if (requestIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from('file_references')
+        .select('*')
+        .in('request_id', requestIds)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const map: Record<string, { file_url: string; file_name: string; file_type: string | null }> = {};
+      (data || []).forEach((f: any) => {
+        if (!map[f.request_id]) {
+          map[f.request_id] = { file_url: f.file_url, file_name: f.file_name, file_type: f.file_type };
         }
       });
       return map;
@@ -83,11 +105,10 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
         </div>
       ) : (
         <>
-          {/* Ready for Review */}
           {readyForReview.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold font-body text-foreground mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#E67E22] animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                 Ready for Your Review
                 <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full font-bold">{needsAction}</span>
               </h2>
@@ -97,6 +118,7 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
                     key={r.id}
                     request={r}
                     creative={creativeMap[r.id]}
+                    file={fileMap[r.id]}
                     onRequestClick={onRequestClick}
                     updateCreative={updateCreative}
                     updateRequest={updateRequest}
@@ -107,7 +129,6 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
             </section>
           )}
 
-          {/* In Revision */}
           {inRevision.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold font-body text-foreground mb-3">
@@ -121,11 +142,11 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
                     <button
                       key={r.id}
                       onClick={() => onRequestClick(r)}
-                      className="w-full text-left bg-card border border-border rounded-lg p-4 hover:border-accent transition-colors"
+                      className="w-full text-left bg-card border border-border rounded-xl p-4 hover:border-accent transition-colors shadow-sm"
                     >
                       <div className="flex items-start gap-3">
                         {creative?.graphic_url && (
-                          <img src={creative.graphic_url} alt="" className="w-16 h-16 object-cover rounded shrink-0" />
+                          <img src={creative.graphic_url} alt="" className="w-16 h-16 object-cover rounded-lg shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-body font-semibold text-foreground truncate">{r.title}</p>
@@ -134,12 +155,12 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
                             <ContentTypeBadge label={r.content_type} />
                           </div>
                           {creative?.feedback && (
-                            <div className="mt-2 text-xs font-body bg-[#E67E22]/10 border border-[#E67E22]/20 rounded px-2.5 py-1.5 text-foreground">
-                              <span className="font-semibold text-[#E67E22]">You said:</span> "{creative.feedback}"
+                            <div className="mt-2 text-xs font-body bg-accent/10 border border-accent/20 rounded px-2.5 py-1.5 text-foreground">
+                              <span className="font-semibold text-accent">You said:</span> "{creative.feedback}"
                             </div>
                           )}
                         </div>
-                        <span className="text-[11px] font-body font-semibold px-2.5 py-1 rounded-full text-white bg-[#E67E22] shrink-0">
+                        <span className="text-[11px] font-body font-semibold px-2.5 py-1 rounded-full text-white bg-accent shrink-0">
                           In Revision
                         </span>
                       </div>
@@ -155,10 +176,10 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
   );
 }
 
-// Inline review card with LinkedIn preview + approve/request changes
 function ReviewCard({
   request,
   creative,
+  file,
   onRequestClick,
   updateCreative,
   updateRequest,
@@ -166,21 +187,22 @@ function ReviewCard({
 }: {
   request: Request;
   creative?: CreativeInfo;
+  file?: { file_url: string; file_name: string; file_type: string | null };
   onRequestClick: (req: Request) => void;
   updateCreative: any;
   updateRequest: any;
   isAdmin: boolean;
 }) {
+  const { profile } = useAuth();
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
-  const [approverName, setApproverName] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
-  );
   const [saving, setSaving] = useState(false);
 
+  const approverName = profile?.full_name || profile?.email || '';
+
   const handleApprove = async () => {
-    if (!approverName.trim()) {
-      toast.error('Please enter your name');
+    if (!approverName) {
+      toast.error('Could not determine your name');
       return;
     }
     if (!creative) return;
@@ -193,7 +215,6 @@ function ReviewCard({
         approved_at: new Date().toISOString(),
       });
       await updateRequest.mutateAsync({ id: request.id, stage: 'Scheduled' } as any);
-      localStorage.setItem('sr_submitter_name', approverName);
       toast.success('Approved! Post is now scheduled.');
     } catch {
       toast.error('Failed to approve');
@@ -226,94 +247,100 @@ function ReviewCard({
     }
   };
 
-  const inputClass = "w-full text-sm font-body bg-background border border-border rounded px-2 py-1.5 text-foreground";
+  // Determine what image to show: creative graphic > file attachment (if image) > nothing
+  const previewImageUrl = creative?.graphic_url
+    || (file?.file_type?.startsWith('image') ? file.file_url : null);
+
+  const hasPreviewContent = previewImageUrl || creative?.caption;
 
   return (
-    <div className="bg-card border-2 border-[#E67E22]/30 rounded-xl overflow-hidden shadow-sm">
-      {/* Header with badges */}
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ServiceLineBadge label={request.service_line} />
-          <ContentTypeBadge label={request.content_type} />
-          <button onClick={() => onRequestClick(request)} className="text-[11px] font-body text-accent hover:underline ml-2">
-            View details →
-          </button>
-        </div>
-        <span className="text-[11px] font-body font-semibold px-2.5 py-1 rounded-full text-white bg-[#E67E22]">
-          Needs Your Review
-        </span>
-      </div>
-
-      {/* LinkedIn-style preview */}
-      {creative && (creative.graphic_url || creative.caption) ? (
-        <div className="mx-4 mb-3 border border-border rounded-lg overflow-hidden bg-background">
-          <div className="px-4 pt-3 pb-2 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">SR</div>
-            <div>
-              <div className="text-sm font-semibold font-body text-foreground">Stable Rock</div>
-              <div className="text-[11px] text-muted-foreground font-body">Company • {creative.platform || 'LinkedIn'}</div>
+    <div className="bg-card rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+      {/* Card header: title + badges + status */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-body font-bold text-foreground truncate">{request.title}</h3>
+            <div className="flex items-center gap-2 mt-1.5">
+              <ServiceLineBadge label={request.service_line} />
+              <ContentTypeBadge label={request.content_type} />
+              {request.target_date && (
+                <span className="text-[11px] font-body text-muted-foreground">
+                  Due {format(parseISO(request.target_date), 'MMM d')}
+                </span>
+              )}
             </div>
           </div>
-          {creative.caption && (
-            <div className="px-4 pb-3">
-              <p className="text-sm font-body text-foreground whitespace-pre-wrap leading-relaxed">{creative.caption}</p>
+          <span className="text-[11px] font-body font-semibold px-2.5 py-1 rounded-full bg-accent/15 text-accent shrink-0">
+            Needs Your Review
+          </span>
+        </div>
+      </div>
+
+      {/* Preview area */}
+      {hasPreviewContent ? (
+        <div className="mx-4 mb-3 border border-border rounded-lg overflow-hidden bg-background">
+          <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">SR</div>
+            <div>
+              <div className="text-xs font-semibold font-body text-foreground">Stable Rock</div>
+              <div className="text-[10px] text-muted-foreground font-body">{creative?.platform || 'LinkedIn'}</div>
+            </div>
+          </div>
+          {creative?.caption && (
+            <div className="px-3 pb-2">
+              <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">{creative.caption}</p>
             </div>
           )}
-          {creative.graphic_url && (
-            <img src={creative.graphic_url} alt="" className="w-full" />
+          {previewImageUrl && (
+            <img src={previewImageUrl} alt="" className="w-full" />
           )}
         </div>
       ) : (
-        <div className="mx-4 mb-3 p-6 border border-border rounded-lg bg-muted text-center">
-          <p className="text-sm font-body text-muted-foreground">Creative preview not available yet</p>
-          <button onClick={() => onRequestClick(request)} className="text-xs font-body text-accent hover:underline mt-1">
-            Open request to view details
+        <div className="mx-4 mb-3 py-6 border border-dashed border-border rounded-lg bg-muted/50 flex flex-col items-center justify-center gap-1.5">
+          <FileImage className="w-6 h-6 text-muted-foreground/50" />
+          <p className="text-xs font-body text-muted-foreground">Creative preview not available yet</p>
+          <button onClick={() => onRequestClick(request)} className="text-[11px] font-body text-accent hover:underline">
+            View request details →
           </button>
         </div>
       )}
 
-      {/* Approve / Request Changes section */}
+      {/* Actions */}
       <div className="px-4 pb-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <input
-            value={approverName}
-            onChange={(e) => setApproverName(e.target.value)}
-            placeholder="Your name"
-            className={`${inputClass} flex-1 text-xs`}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
         {!showFeedback ? (
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={handleApprove}
-              disabled={saving || !approverName.trim()}
-              className="flex-1 text-sm font-body font-bold bg-[#27AE60] text-white px-4 py-3 rounded-lg hover:bg-[#219A52] disabled:opacity-50 transition-colors"
+              disabled={saving}
+              className="flex-1 text-sm font-body font-semibold bg-[hsl(var(--chart-2))] text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               ✓ Approve
             </button>
             <button
               onClick={() => setShowFeedback(true)}
               disabled={saving}
-              className="flex-1 text-sm font-body font-bold border-2 border-[#E67E22] text-[#E67E22] px-4 py-3 rounded-lg hover:bg-[#E67E22]/10 disabled:opacity-50 transition-colors"
+              className="flex-1 text-sm font-body font-semibold bg-accent text-white px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               ✎ Request Changes
             </button>
           </div>
         ) : (
           <div className="space-y-2">
+            <label className="text-xs font-body font-medium text-muted-foreground">
+              What changes would you like?
+            </label>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="What changes would you like? Be specific so Archway can get it right..."
-              className={`${inputClass} min-h-[80px]`}
+              placeholder="Be specific so Archway can get it right..."
+              className="w-full text-sm font-body bg-background border border-border rounded-lg px-3 py-2 text-foreground min-h-[72px] focus:outline-none focus:ring-2 focus:ring-ring"
               autoFocus
             />
             <div className="flex gap-2">
               <button
                 onClick={handleRequestChanges}
                 disabled={saving || !feedbackText.trim()}
-                className="text-sm font-body font-semibold bg-[#E67E22] text-white px-4 py-2 rounded-lg hover:bg-[#D35400] disabled:opacity-50 transition-colors"
+                className="text-sm font-body font-semibold bg-accent text-white px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 Submit Feedback
               </button>
