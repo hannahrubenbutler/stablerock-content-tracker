@@ -12,6 +12,7 @@ interface AllRequestsProps {
 }
 
 export default function AllRequests({ onRequestClick, initialStageFilter }: AllRequestsProps) {
+  const { isAdmin } = useAuth();
   const { data: requests = [] } = useRequests();
   const updateRequest = useUpdateRequest();
   const { data: metaCounts } = useRequestMetaCounts();
