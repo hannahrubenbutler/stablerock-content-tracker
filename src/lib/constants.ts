@@ -40,12 +40,15 @@ export const CONTENT_TYPE_COLORS: Record<string, string> = {
   'Website Update': '#34495E',
 };
 
+// Internal stages — full granularity for Archway admin
 export const STAGES = [
   'Requested',
-  'Needs Info',
   'In Progress',
   'In Simplified',
+  'Creative Uploaded',
   'Client Review',
+  'Changes Requested',
+  'Approved',
   'Scheduled',
   'Published',
   'On Hold',
@@ -56,7 +59,10 @@ export const STAGE_COLORS: Record<string, string> = {
   'Needs Info': '#E67E22',
   'In Progress': '#2980B9',
   'In Simplified': '#8E44AD',
+  'Creative Uploaded': '#1ABC9C',
   'Client Review': '#D4AC0D',
+  'Changes Requested': '#E67E22',
+  'Approved': '#27AE60',
   'Scheduled': '#1ABC9C',
   'Published': '#27AE60',
   'On Hold': '#95A5A6',
@@ -87,3 +93,29 @@ export const OWNER_OPTIONS = [
 export type ServiceLine = typeof SERVICE_LINES[number];
 export type ContentType = typeof CONTENT_TYPES[number];
 export type Stage = typeof STAGES[number];
+
+// Client-facing status mapping
+export function getClientStatus(stage: string): { label: string; color: string; tab: 'requests' | 'review' | 'approved' } {
+  switch (stage) {
+    case 'Requested':
+    case 'Needs Info':
+      return { label: 'Received', color: '#95A5A6', tab: 'requests' };
+    case 'In Progress':
+    case 'In Simplified':
+      return { label: 'In Progress', color: '#F1C40F', tab: 'requests' };
+    case 'Creative Uploaded':
+    case 'Client Review':
+      return { label: 'Ready for Review', color: '#E67E22', tab: 'review' };
+    case 'Changes Requested':
+      return { label: 'In Revision', color: '#E67E22', tab: 'review' };
+    case 'Approved':
+    case 'Scheduled':
+      return { label: 'Scheduled', color: '#1ABC9C', tab: 'approved' };
+    case 'Published':
+      return { label: 'Published', color: '#27AE60', tab: 'approved' };
+    case 'On Hold':
+      return { label: 'On Hold', color: '#95A5A6', tab: 'requests' };
+    default:
+      return { label: stage, color: '#6B7280', tab: 'requests' };
+  }
+}

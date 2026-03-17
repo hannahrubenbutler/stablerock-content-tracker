@@ -1,63 +1,65 @@
 import { useState, useMemo } from 'react';
 import AppHeader, { TabName } from '@/components/AppHeader';
 import Dashboard from '@/components/Dashboard';
-import AllRequests from '@/components/AllRequests';
-import CalendarView from '@/components/CalendarView';
+import RequestsTab from '@/components/RequestsTab';
+import ReviewTab from '@/components/ReviewTab';
+import ApprovedTab from '@/components/ApprovedTab';
 import SubmitForm from '@/components/SubmitForm';
-import AssetsView from '@/components/AssetsView';
 import AdminSettings from '@/components/AdminSettings';
 import DetailModal from '@/components/DetailModal';
 import { Request, useRequests } from '@/hooks/useData';
-import { Stage } from '@/lib/constants';
+import { getClientStatus } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [stageFilter, setStageFilter] = useState<Stage | null>(null);
   const { data: requests = [] } = useRequests();
   const { isAdmin } = useAuth();
 
-  const needsActionCount = useMemo(() => {
-    return requests.filter(
-      (r) => r.what_needed_from_client && r.what_needed_from_client.trim().length > 0 && r.stage !== 'Published'
-    ).length;
+  const reviewCount = useMemo(() => {
+    return requests.filter((r) => {
+      const cs = getClientStatus(r.stage);
+      return cs.tab === 'review' && cs.label === 'Ready for Review';
+    }).length;
   }, [requests]);
 
-  const handleStageFilter = (stage: Stage) => {
-    setStageFilter(stage);
-    setActiveTab('All Requests');
+  const handleTabChange = (tab: TabName) => {
+    if (tab === 'Settings' && !isAdmin) return;
+    setActiveTab(tab);
   };
 
-  const handleTabChange = (tab: TabName) => {
-    // Prevent clients from accessing admin-only tabs
-    if (tab === 'Settings' && !isAdmin) return;
-    if (tab === 'Assets' && !isAdmin) return;
-    setActiveTab(tab);
-    if (tab !== 'All Requests') setStageFilter(null);
+  const tabLabels: Record<string, string> = {
+    'Dashboard': 'Dashboard',
+    'Requests': 'Your Requests',
+    'Review': 'Review',
+    'Approved': 'Approved',
+    'Submit': 'Submit a Request',
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} needsActionCount={needsActionCount} />
+      <AppHeader activeTab={activeTab} onTabChange={handleTabChange} reviewCount={reviewCount} />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeTab !== 'Settings' && (
-          <h2 className="text-lg font-semibold font-body text-foreground mb-4">{activeTab}</h2>
+        {activeTab !== 'Settings' && activeTab !== 'Dashboard' && (
+          <h2 className="text-lg font-semibold font-body text-foreground mb-4">{tabLabels[activeTab] || activeTab}</h2>
         )}
 
         {activeTab === 'Dashboard' && (
-          <Dashboard onRequestClick={setSelectedRequest} onStageFilter={handleStageFilter} />
+          <Dashboard onRequestClick={setSelectedRequest} onTabChange={handleTabChange} />
         )}
-        {activeTab === 'All Requests' && (
-          <AllRequests onRequestClick={setSelectedRequest} initialStageFilter={stageFilter} />
+        {activeTab === 'Requests' && (
+          <RequestsTab onRequestClick={setSelectedRequest} />
         )}
-        {activeTab === 'Calendar' && (
-          <CalendarView onRequestClick={setSelectedRequest} />
+        {activeTab === 'Review' && (
+          <ReviewTab onRequestClick={setSelectedRequest} />
+        )}
+        {activeTab === 'Approved' && (
+          <ApprovedTab onRequestClick={setSelectedRequest} />
         )}
         {activeTab === 'Submit' && (
-          <SubmitForm onNavigateToRequests={() => setActiveTab('All Requests')} />
+          <SubmitForm onNavigateToRequests={() => setActiveTab('Requests')} />
         )}
-        {activeTab === 'Assets' && isAdmin && <AssetsView />}
         {activeTab === 'Settings' && isAdmin && <AdminSettings />}
       </main>
 

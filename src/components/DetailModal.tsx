@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS, getClientStatus } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -229,19 +229,17 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   )}
                 </Tooltip>
               ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                (() => {
+                  const cs = getClientStatus(form.stage);
+                  return (
                     <span
-                      className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground inline-block"
-                      style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                      className="text-xs font-body font-semibold rounded px-2 py-1 text-white inline-block"
+                      style={{ backgroundColor: cs.color }}
                     >
-                      {form.stage}
+                      {cs.label}
                     </span>
-                  </TooltipTrigger>
-                  {form.stage === 'In Simplified' && (
-                    <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
-                  )}
-                </Tooltip>
+                  );
+                })()
               )}
               {isAdmin && editing && (
                 <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
