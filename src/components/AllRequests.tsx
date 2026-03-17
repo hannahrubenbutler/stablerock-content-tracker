@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Request, useRequests, useUpdateRequest, useRequestMetaCounts, useAssets } from '@/hooks/useData';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage, STAGE_COLORS } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage, STAGE_COLORS, OWNER_OPTIONS } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
