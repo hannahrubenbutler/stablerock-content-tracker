@@ -73,6 +73,9 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
     setSubmitting(true);
 
     try {
+      let createdRequestCount = 0;
+      let uploadFailureCount = 0;
+
       for (const ct of typesToCreate) {
         const newRequest = await createRequest.mutateAsync({
           title: form.title,
@@ -96,17 +99,29 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
           deadline_text: hasHardDeadline ? (deadlineText || null) : null,
         } as any);
 
+        createdRequestCount += 1;
+
         for (const file of selectedFiles) {
-          await uploadFile.mutateAsync({
-            requestId: newRequest.id,
-            file,
-            uploadedBy: form.submitter_name || 'Unknown',
-          });
+          try {
+            await uploadFile.mutateAsync({
+              requestId: newRequest.id,
+              file,
+              uploadedBy: form.submitter_name || 'Unknown',
+            });
+          } catch (uploadError) {
+            uploadFailureCount += 1;
+            console.error('SubmitForm file upload failed', {
+              requestId: newRequest.id,
+              fileName: file.name,
+              uploadError,
+            });
+          }
         }
       }
+
       toast.success(
         <div>
-          <p className="font-medium">{typesToCreate.length} request(s) sent to Archway!</p>
+          <p className="font-medium">{createdRequestCount} request(s) sent to Archway!</p>
           <p className="text-xs mt-1">
             Your request has been sent. Track it on the{' '}
             {onNavigateToRequests ? (
@@ -115,6 +130,11 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
               <span className="font-medium">All Requests</span>
             )} tab.
           </p>
+          {uploadFailureCount > 0 && (
+            <p className="text-xs mt-1">
+              {uploadFailureCount} attachment(s) could not be uploaded, but your request was saved.
+            </p>
+          )}
         </div>,
         { duration: 6000 }
       );
@@ -128,7 +148,8 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
       setFlexibleDateText('');
       setHasHardDeadline(false);
       setDeadlineText('');
-    } catch {
+    } catch (error) {
+      console.error('SubmitForm request creation failed', error);
       toast.error('Failed to submit request');
     } finally {
       setSubmitting(false);

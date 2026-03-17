@@ -147,7 +147,10 @@ export function useUploadFile() {
     mutationFn: async ({ requestId, file, uploadedBy }: { requestId: string; file: File; uploadedBy: string }) => {
       const filePath = `${requestId}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('useUploadFile storage upload failed', { requestId, fileName: file.name, uploadError });
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
 
@@ -158,7 +161,10 @@ export function useUploadFile() {
         file_type: file.type,
         uploaded_by: uploadedBy,
       }).select().single();
-      if (error) throw error;
+      if (error) {
+        console.error('useUploadFile file reference insert failed', { requestId, fileName: file.name, error });
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => qc.invalidateQueries({ queryKey: ['files', data.request_id] }),
