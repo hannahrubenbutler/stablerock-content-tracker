@@ -130,12 +130,19 @@ export type Database = {
       }
       requests: {
         Row: {
+          actual_publish_date: string | null
           assets_available: string | null
+          contact_person: string | null
           content_type: string
           context: string | null
           created_at: string
+          date_mode: string | null
+          date_range_end: string | null
+          deadline_text: string | null
           description: string | null
           event_promo_date: string | null
+          flexible_date_text: string | null
+          has_hard_deadline: boolean | null
           id: string
           owner: string | null
           priority: Database["public"]["Enums"]["request_priority"]
@@ -148,12 +155,19 @@ export type Database = {
           what_needed_from_client: string | null
         }
         Insert: {
+          actual_publish_date?: string | null
           assets_available?: string | null
+          contact_person?: string | null
           content_type: string
           context?: string | null
           created_at?: string
+          date_mode?: string | null
+          date_range_end?: string | null
+          deadline_text?: string | null
           description?: string | null
           event_promo_date?: string | null
+          flexible_date_text?: string | null
+          has_hard_deadline?: boolean | null
           id?: string
           owner?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
@@ -166,12 +180,19 @@ export type Database = {
           what_needed_from_client?: string | null
         }
         Update: {
+          actual_publish_date?: string | null
           assets_available?: string | null
+          contact_person?: string | null
           content_type?: string
           context?: string | null
           created_at?: string
+          date_mode?: string | null
+          date_range_end?: string | null
+          deadline_text?: string | null
           description?: string | null
           event_promo_date?: string | null
+          flexible_date_text?: string | null
+          has_hard_deadline?: boolean | null
           id?: string
           owner?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
