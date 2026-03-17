@@ -31,6 +31,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
 
   const req = request as any;
   const [editing, setEditing] = useState(false);
+  const [ownerIsOther, setOwnerIsOther] = useState(() => {
+    const current = (request as any).owner;
+    return current && !(OWNER_OPTIONS as readonly string[]).includes(current);
+  });
   const [form, setForm] = useState<any>({ ...request });
   const [commentName, setCommentName] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
