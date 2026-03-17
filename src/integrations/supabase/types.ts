@@ -193,6 +193,33 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          invited_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          invited_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          invited_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       requests: {
         Row: {
           actual_publish_date: string | null
@@ -271,14 +298,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ensure_profile: {
+        Args: { _email: string; _full_name?: string; _user_id: string }
+        Returns: undefined
+      }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "client"
       asset_status: "Waiting" | "Blocking" | "Received" | "Partial"
       request_priority: "High" | "Medium" | "Low"
       request_stage:
@@ -417,6 +474,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "client"],
       asset_status: ["Waiting", "Blocking", "Received", "Partial"],
       request_priority: ["High", "Medium", "Low"],
       request_stage: [
