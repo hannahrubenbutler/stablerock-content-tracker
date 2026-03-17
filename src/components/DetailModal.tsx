@@ -121,10 +121,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <select value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
                 </select>
-                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value as Request['stage'] })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Request['priority'] })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
