@@ -49,9 +49,6 @@ export default function Index() {
         {activeTab === 'Submit' && (
           <SubmitForm onNavigateToRequests={() => setActiveTab('All Requests')} />
         )}
-        {activeTab === 'Published' && (
-          <PublishedView onRequestClick={setSelectedRequest} />
-        )}
         {activeTab === 'Assets' && <AssetsView />}
       </main>
 
