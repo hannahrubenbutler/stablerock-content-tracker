@@ -19,7 +19,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const isClientReview = request.stage === 'Client Review';
   const isScheduled = request.stage === 'Scheduled';
 
-  // Draft state for new/editing creative
   const [caption, setCaption] = useState(latest?.caption || '');
   const [platform, setPlatform] = useState(latest?.platform || 'LinkedIn');
   const [scheduledDate, setScheduledDate] = useState(latest?.scheduled_datetime ? format(parseISO(latest.scheduled_datetime), 'yyyy-MM-dd') : '');
@@ -29,12 +28,13 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Approval flow
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [approverName, setApproverName] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
   );
+
+  const canSendForApproval = !!graphicUrl && !!caption.trim();
 
   const handleGraphicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -71,7 +71,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
       const isRevision = latest && latest.status === 'Changes Requested';
 
       if (isRevision && latest) {
-        // Create new version
         await createCreative.mutateAsync({
           request_id: request.id,
           version: nextVersion,
@@ -83,7 +82,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           status: 'Pending Approval',
         });
       } else if (latest && latest.status === 'Draft') {
-        // Update existing draft
         await updateCreative.mutateAsync({
           id: latest.id,
           graphic_url: graphicUrl,
@@ -94,7 +92,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           status: 'Pending Approval',
         });
       } else {
-        // Create first version
         await createCreative.mutateAsync({
           request_id: request.id,
           version: nextVersion,
@@ -107,9 +104,9 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         });
       }
 
-      // Change request stage to Client Review
+      // Auto-advance request stage to Client Review
       await updateRequest.mutateAsync({ id: request.id, stage: 'Client Review' } as any);
-      toast.success('Sent for approval!');
+      toast.success('Sent for approval — request moved to Client Review!');
     } catch {
       toast.error('Failed to send for approval');
     } finally {
@@ -191,7 +188,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         </div>
       )}
 
-      {/* Approval buttons — show when in Client Review */}
+      {/* Approval buttons */}
       {isClientReview && latest && latest.status === 'Pending Approval' && (
         <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-lg p-4">
           <p className="text-xs font-body font-semibold text-foreground">This post is ready for your review.</p>
@@ -253,10 +250,9 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         </div>
       )}
 
-      {/* Upload & Edit section — only for Archway (not in client review approval mode) */}
+      {/* Upload & Edit section */}
       {(!isClientReview || (latest && latest.status === 'Changes Requested')) && !isScheduled && (
         <div className="space-y-3">
-          {/* Graphic upload */}
           <div>
             <label className={labelClass}>Graphic</label>
             <div className="mt-1">
@@ -283,7 +279,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             </div>
           </div>
 
-          {/* Caption */}
           <div>
             <label className={labelClass}>Caption</label>
             <textarea
@@ -294,7 +289,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             />
           </div>
 
-          {/* Platform */}
           <div>
             <label className={labelClass}>Platform</label>
             <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={`${inputClass} mt-1`}>
@@ -304,7 +298,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             </select>
           </div>
 
-          {/* Schedule */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className={labelClass}>Schedule Date</label>
@@ -317,13 +310,24 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           </div>
 
           {/* Send for Approval */}
-          <button
-            onClick={handleSendForApproval}
-            disabled={saving || !graphicUrl || !caption.trim()}
-            className="w-full text-sm font-body font-semibold bg-accent text-accent-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? 'Sending...' : latest?.status === 'Changes Requested' ? '🔄 Re-send for Approval' : '📤 Send for Approval'}
-          </button>
+          <div>
+            <button
+              onClick={handleSendForApproval}
+              disabled={saving || !canSendForApproval}
+              className="w-full text-sm font-body font-semibold bg-accent text-accent-foreground px-4 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? 'Sending...' : latest?.status === 'Changes Requested' ? '🔄 Re-send for Approval' : '📤 Send for Approval'}
+            </button>
+            {!canSendForApproval && (
+              <p className="text-[11px] font-body text-muted-foreground mt-1.5 text-center">
+                {!graphicUrl && !caption.trim()
+                  ? 'Upload a graphic and add a caption to enable sending for approval.'
+                  : !graphicUrl
+                    ? 'Upload a graphic to enable sending for approval.'
+                    : 'Add a caption to enable sending for approval.'}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

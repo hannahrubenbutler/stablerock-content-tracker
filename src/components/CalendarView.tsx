@@ -14,6 +14,28 @@ interface CalendarViewProps {
 export default function CalendarView({ onRequestClick }: CalendarViewProps) {
   const { data: requests = [] } = useRequests();
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
+  const [serviceFilter, setServiceFilter] = useState<string>('');
+  const [personFilter, setPersonFilter] = useState<string>('');
+
+  // Derive people list for filter
+  const people = useMemo(() => {
+    const set = new Set<string>();
+    requests.forEach((r) => {
+      if (r.owner) set.add(r.owner);
+      if (r.submitter_name) set.add(r.submitter_name);
+      if ((r as any).contact_person) set.add((r as any).contact_person);
+    });
+    return Array.from(set).sort();
+  }, [requests]);
+
+  // Apply filters
+  const filteredRequests = useMemo(() => {
+    return requests.filter((r) => {
+      if (serviceFilter && r.service_line !== serviceFilter) return false;
+      if (personFilter && r.owner !== personFilter && r.submitter_name !== personFilter && (r as any).contact_person !== personFilter) return false;
+      return true;
+    });
+  }, [requests, serviceFilter, personFilter]);
 
   const days = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -25,24 +47,24 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
 
   const requestsByDate = useMemo(() => {
     const map: Record<string, Request[]> = {};
-    requests.forEach((r) => {
+    filteredRequests.forEach((r) => {
       if (!r.target_date) return;
       const key = r.target_date;
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
     return map;
-  }, [requests]);
+  }, [filteredRequests]);
 
   const monthRequests = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
-    return requests.filter((r) => {
+    return filteredRequests.filter((r) => {
       if (!r.target_date) return false;
       const d = parseISO(r.target_date);
       return d >= start && d <= end;
     });
-  }, [requests, currentMonth]);
+  }, [filteredRequests, currentMonth]);
 
   const groupedByService = useMemo(() => {
     const groups: Record<string, Request[]> = {};
@@ -67,13 +89,32 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
     return null;
   };
 
+  const hasActiveFilter = serviceFilter || personFilter;
+
   return (
     <div className="space-y-6">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between">
-        <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-sm font-body text-muted-foreground hover:text-foreground px-2 py-1">← Prev</button>
-        <h2 className="text-lg font-semibold font-body text-foreground">{format(currentMonth, 'MMMM yyyy')}</h2>
-        <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-sm font-body text-muted-foreground hover:text-foreground px-2 py-1">Next →</button>
+      {/* Month navigation + filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-sm font-body text-muted-foreground hover:text-foreground px-2 py-1">← Prev</button>
+          <h2 className="text-lg font-semibold font-body text-foreground">{format(currentMonth, 'MMMM yyyy')}</h2>
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-sm font-body text-muted-foreground hover:text-foreground px-2 py-1">Next →</button>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
+            <option value="">All Service Lines</option>
+            {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
+          </select>
+          <select value={personFilter} onChange={(e) => setPersonFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
+            <option value="">All People</option>
+            {people.map((p) => <option key={p} value={p}>{p}</option>)}
+          </select>
+          {hasActiveFilter && (
+            <button onClick={() => { setServiceFilter(''); setPersonFilter(''); }} className="text-xs font-body text-accent hover:underline">
+              Clear filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Calendar Grid */}
@@ -109,7 +150,6 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
                     >
                       {r.title}
                       {renderRangeBadge(r)}
-                      {/* Stage dot */}
                       <span
                         className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
                         style={{ backgroundColor: STAGE_COLORS[r.stage] || '#6B7280' }}
@@ -130,7 +170,7 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
       {/* Empty month state */}
       {monthRequests.length === 0 && (
         <p className="text-sm text-muted-foreground font-body py-4 text-center">
-          No content scheduled for {format(currentMonth, 'MMMM yyyy')}. Submit a request to get started.
+          No content scheduled for {format(currentMonth, 'MMMM yyyy')}{hasActiveFilter ? ' matching your filters' : ''}. Submit a request to get started.
         </p>
       )}
 

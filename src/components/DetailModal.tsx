@@ -1,10 +1,15 @@
-import { useState, useRef } from 'react';
-import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile } from '@/hooks/useData';
+import { useState, useRef, useMemo } from 'react';
+import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import CreativeTab from '@/components/CreativeTab';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DetailModalProps {
   request: Request;
@@ -20,6 +25,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const createComment = useCreateComment();
   const { data: files = [] } = useFileReferences(request.id);
   const uploadFile = useUploadFile();
+  const { data: assets = [] } = useAssets();
 
   const req = request as any;
   const [editing, setEditing] = useState(false);
@@ -28,12 +34,34 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
   );
   const [commentText, setCommentText] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPublishPrompt, setShowPublishPrompt] = useState(false);
   const [publishDate, setPublishDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Default to Creative tab if in Client Review or Scheduled
+  // Track last viewed time per request for unread indicator
+  const lastViewedKey = `sr_last_viewed_${request.id}`;
+  const lastViewed = useMemo(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem(lastViewedKey) : null;
+    return stored ? new Date(stored) : null;
+  }, [lastViewedKey]);
+
+  // Mark as viewed on mount
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(lastViewedKey, new Date().toISOString());
+    }
+  });
+
+  const unreadCommentCount = useMemo(() => {
+    if (!lastViewed) return comments.length > 0 ? comments.length : 0;
+    return comments.filter((c) => new Date(c.created_at) > lastViewed).length;
+  }, [comments, lastViewed]);
+
+  // Pending assets for this request
+  const pendingAssets = useMemo(() => {
+    return assets.filter((a) => a.request_id === request.id && (a.status === 'Waiting' || a.status === 'Blocking'));
+  }, [assets, request.id]);
+
   const defaultTab: ModalTab = (request.stage === 'Client Review' || request.stage === 'Scheduled') ? 'Creative' : 'Details';
   const [activeTab, setActiveTab] = useState<ModalTab>(defaultTab);
 
@@ -105,6 +133,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
         content: commentText,
       });
       setCommentText('');
+      // Update last viewed time after posting
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(lastViewedKey, new Date().toISOString());
+      }
     } catch {
       toast.error('Failed to add comment');
     }
@@ -141,293 +173,337 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const tabs: ModalTab[] = ['Details', 'Creative', 'Files & Comments'];
 
   return (
-    <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-16 px-0 md:px-4 overflow-y-auto">
-      <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-2xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              {!editing ? (
-                <h2 className="text-base font-bold font-body text-foreground">{form.title}</h2>
-              ) : (
-                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={`${inputClass} text-base font-bold`} />
-              )}
-            </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2 shrink-0">&times;</button>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap mt-2">
-            <PriorityDot priority={form.priority} />
-            {!editing ? (
-              <>
-                <ServiceLineBadge label={form.service_line} />
-                <ContentTypeBadge label={form.content_type} />
-              </>
-            ) : (
-              <>
-                <select value={form.service_line} onChange={(e) => setForm({ ...form, service_line: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
-                  {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
-                </select>
-                <select value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
-                  {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
-                </select>
-              </>
-            )}
-            <select
-              value={form.stage}
-              onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
-              className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
-              style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
-            >
-              {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            {editing && (
-              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            )}
-            {req.has_hard_deadline && req.deadline_text && (
-              <span className="text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
-                🔴 {req.deadline_text}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Publish date prompt */}
-        {showPublishPrompt && (
-          <div className="mx-4 mt-3 p-3 bg-accent/10 border border-accent rounded space-y-2">
-            <p className="text-xs font-body font-medium text-foreground">When was this published?</p>
-            <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={inputClass} />
-            <div className="flex gap-2">
-              <button onClick={handlePublishDateConfirm} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded">Set Date</button>
-              <button onClick={handlePublishDateSkip} className="text-xs font-body text-muted-foreground hover:text-foreground">Skip</button>
-            </div>
-          </div>
-        )}
-
-        {/* Tab navigation */}
-        <div className="flex border-b border-border px-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`text-xs font-body font-medium px-3 py-2.5 border-b-2 transition-colors ${activeTab === tab ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-4 space-y-4">
-          {/* Details tab */}
-          {activeTab === 'Details' && (
-            <>
-              <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
-                <div>
-                  <span className={labelClass}>Submitted</span>
-                  <p className="text-foreground">{format(parseISO(request.created_at), 'MMM d, yyyy')}</p>
-                </div>
-                <div>
-                  <span className={labelClass}>Due Date</span>
-                  {editing ? (
-                    <div className="space-y-1">
-                      <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
-                        <option value="specific">Specific Date</option>
-                        <option value="range">Date Range</option>
-                        <option value="flexible">Flexible</option>
-                      </select>
-                      {(form.date_mode || 'specific') !== 'flexible' && (
-                        <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
-                      )}
-                      {form.date_mode === 'range' && (
-                        <input type="date" value={form.date_range_end || ''} onChange={(e) => setForm({ ...form, date_range_end: e.target.value || null })} className={inputClass} placeholder="End date" />
-                      )}
-                      {form.date_mode === 'flexible' && (
-                        <input value={form.flexible_date_text || ''} onChange={(e) => setForm({ ...form, flexible_date_text: e.target.value || null })} className={inputClass} placeholder="e.g. sometime in April" />
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-foreground">{formatDateInfo()}</p>
-                  )}
-                </div>
-                <div>
-                  <span className={labelClass}>Event / Promo Date</span>
-                  {editing ? (
-                    <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
-                  ) : (
-                    <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
-                  )}
-                </div>
-                <div>
-                  <span className={labelClass}>Actual Publish Date</span>
-                  {editing ? (
-                    <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-                  ) : (
-                    <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-                  )}
-                </div>
-                <div>
-                  <span className={labelClass}>Owner</span>
-                  {editing ? (
-                    <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
-                  ) : (
-                    <p className="text-foreground">{form.owner || '–'}</p>
-                  )}
-                </div>
-                <div>
-                  <span className={labelClass}>Contact Person</span>
-                  {editing ? (
-                    <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
-                  ) : (
-                    <p className="text-foreground">{req.contact_person || '–'}</p>
-                  )}
-                </div>
-                <div>
-                  <span className={labelClass}>Submitter</span>
-                  {editing ? (
-                    <input value={form.submitter_name || ''} onChange={(e) => setForm({ ...form, submitter_name: e.target.value || null })} className={inputClass} />
-                  ) : (
-                    <p className="text-foreground">{form.submitter_name || '–'}</p>
-                  )}
-                </div>
-              </div>
-
-              {editing && (
-                <div className="space-y-1">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
-                    <span className="text-xs font-body text-foreground">Hard deadline or event</span>
-                  </label>
-                  {form.has_hard_deadline && (
-                    <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
-                  )}
-                </div>
-              )}
-
-              <div>
-                <span className={labelClass}>What's Needed from Client</span>
-                {editing ? (
-                  <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+    <TooltipProvider>
+      <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-12 px-0 md:px-4 overflow-y-auto">
+        <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-[700px] shadow-lg min-h-screen md:min-h-0 md:mb-8">
+          {/* Header */}
+          <div className="px-5 py-3 border-b border-border">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                {!editing ? (
+                  <h2 className="text-base font-bold font-body text-foreground">{form.title}</h2>
                 ) : (
-                  <div className={`text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 ${form.what_needed_from_client ? 'bg-destructive/10 border border-destructive/20' : ''}`}>
-                    {form.what_needed_from_client || '–'}
-                  </div>
+                  <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={`${inputClass} text-base font-bold`} />
                 )}
               </div>
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2 shrink-0">&times;</button>
+            </div>
 
-              {(['context', 'assets_available'] as const).map((field) => {
-                const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials' };
-                return (
-                  <div key={field}>
-                    <span className={labelClass}>{labels[field]}</span>
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              <PriorityDot priority={form.priority} />
+              {!editing ? (
+                <>
+                  <ServiceLineBadge label={form.service_line} />
+                  <ContentTypeBadge label={form.content_type} />
+                </>
+              ) : (
+                <>
+                  <select value={form.service_line} onChange={(e) => setForm({ ...form, service_line: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                    {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
+                  </select>
+                  <select value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                    {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
+                  </select>
+                </>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <select
+                    value={form.stage}
+                    onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+                    className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
+                    style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                  >
+                    {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </TooltipTrigger>
+                {form.stage === 'In Simplified' && (
+                  <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                )}
+              </Tooltip>
+              {editing && (
+                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              )}
+              {req.has_hard_deadline && req.deadline_text && (
+                <span className="text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
+                  🔴 {req.deadline_text}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Publish date prompt */}
+          {showPublishPrompt && (
+            <div className="mx-5 mt-3 p-3 bg-accent/10 border border-accent rounded space-y-2">
+              <p className="text-xs font-body font-medium text-foreground">When was this published?</p>
+              <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={inputClass} />
+              <div className="flex gap-2">
+                <button onClick={handlePublishDateConfirm} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded">Set Date</button>
+                <button onClick={handlePublishDateSkip} className="text-xs font-body text-muted-foreground hover:text-foreground">Skip</button>
+              </div>
+            </div>
+          )}
+
+          {/* Pending asset alert */}
+          {pendingAssets.length > 0 && (
+            <div className="mx-5 mt-3 p-3 bg-[#F1C40F]/10 border border-[#F1C40F]/30 rounded">
+              <p className="text-xs font-body font-semibold text-foreground">📦 {pendingAssets.length} asset{pendingAssets.length > 1 ? 's' : ''} still needed</p>
+              <div className="mt-1 space-y-0.5">
+                {pendingAssets.map((a) => (
+                  <p key={a.id} className="text-[11px] font-body text-muted-foreground">
+                    • {a.title} — <span className={a.status === 'Blocking' ? 'text-destructive font-medium' : 'text-[#F1C40F]'}>{a.status}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab navigation */}
+          <div className="flex border-b border-border px-5">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`text-xs font-body font-medium px-3 py-2.5 border-b-2 transition-colors relative ${activeTab === tab ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              >
+                {tab}
+                {tab === 'Files & Comments' && unreadCommentCount > 0 && activeTab !== 'Files & Comments' && (
+                  <span className="absolute -top-0.5 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[9px] flex items-center justify-center font-bold">
+                    {unreadCommentCount}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-5 space-y-4">
+            {/* Details tab */}
+            {activeTab === 'Details' && (
+              <>
+                <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
+                  <div>
+                    <span className={labelClass}>Submitted</span>
+                    <p className="text-foreground">{format(parseISO(request.created_at), 'MMM d, yyyy')}</p>
+                  </div>
+                  <div>
+                    <span className={labelClass}>Due Date</span>
                     {editing ? (
-                      <textarea value={(form as any)[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                      <div className="space-y-1">
+                        <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
+                          <option value="specific">Specific Date</option>
+                          <option value="range">Date Range</option>
+                          <option value="flexible">Flexible</option>
+                        </select>
+                        {(form.date_mode || 'specific') !== 'flexible' && (
+                          <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
+                        )}
+                        {form.date_mode === 'range' && (
+                          <input type="date" value={form.date_range_end || ''} onChange={(e) => setForm({ ...form, date_range_end: e.target.value || null })} className={inputClass} placeholder="End date" />
+                        )}
+                        {form.date_mode === 'flexible' && (
+                          <input value={form.flexible_date_text || ''} onChange={(e) => setForm({ ...form, flexible_date_text: e.target.value || null })} className={inputClass} placeholder="e.g. sometime in April" />
+                        )}
+                      </div>
                     ) : (
-                      <p className="text-xs font-body text-foreground whitespace-pre-wrap">{(form as any)[field] || '–'}</p>
+                      <p className="text-foreground">{formatDateInfo()}</p>
                     )}
                   </div>
-                );
-              })}
-
-              <div className="flex gap-2">
-                {editing ? (
-                  <>
-                    <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
-                    <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-                  </>
-                ) : (
-                  <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Creative tab */}
-          {activeTab === 'Creative' && (
-            <CreativeTab request={request} />
-          )}
-
-          {/* Files & Comments tab */}
-          {activeTab === 'Files & Comments' && (
-            <>
-              <section>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={labelClass}>Attachments ({files.length})</span>
-                  <button onClick={() => fileInputRef.current?.click()} className="text-xs font-body text-accent hover:underline">Upload</button>
-                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.pptx,.xlsx" />
+                  <div>
+                    <span className={labelClass}>Event / Promo Date</span>
+                    {editing ? (
+                      <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
+                    ) : (
+                      <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className={labelClass}>Actual Publish Date</span>
+                    {editing ? (
+                      <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+                    ) : (
+                      <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className={labelClass}>Owner</span>
+                    {editing ? (
+                      <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
+                    ) : (
+                      <p className="text-foreground">{form.owner || '–'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className={labelClass}>Contact Person</span>
+                    {editing ? (
+                      <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
+                    ) : (
+                      <p className="text-foreground">{req.contact_person || '–'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <span className={labelClass}>Submitter</span>
+                    {editing ? (
+                      <input value={form.submitter_name || ''} onChange={(e) => setForm({ ...form, submitter_name: e.target.value || null })} className={inputClass} />
+                    ) : (
+                      <p className="text-foreground">{form.submitter_name || '–'}</p>
+                    )}
+                  </div>
                 </div>
-                {files.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {files.map((f) => (
-                      <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block border border-border rounded overflow-hidden hover:border-accent transition-colors">
-                        {isImage(f.file_type) ? (
-                          <img src={f.file_url} alt={f.file_name} className="w-full h-24 object-cover" />
-                        ) : (
-                          <div className="h-24 flex items-center justify-center bg-muted">
-                            <span className="text-2xl">📄</span>
-                          </div>
-                        )}
-                        <div className="px-2 py-1 text-[10px] font-body text-muted-foreground truncate">{f.file_name}</div>
-                      </a>
-                    ))}
+
+                {editing && (
+                  <div className="space-y-1">
+                    <label className="flex items-center gap-2">
+                      <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
+                      <span className="text-xs font-body text-foreground">Hard deadline or event</span>
+                    </label>
+                    {form.has_hard_deadline && (
+                      <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
+                    )}
                   </div>
                 )}
-              </section>
 
-              <section>
-                <span className={labelClass}>Comments ({comments.length})</span>
-                <div className="space-y-2 mt-2">
-                  {comments.map((c) => (
-                    <div key={c.id} className="bg-muted rounded p-2">
-                      <div className="flex justify-between">
-                        <span className="text-xs font-semibold font-body text-foreground">{c.author_name}</span>
-                        <span className="text-[10px] font-body text-muted-foreground">{format(parseISO(c.created_at), 'MMM d, yyyy h:mm a')}</span>
+                {/* What's Needed from Client — highlighted if has content, hidden if empty and not editing */}
+                {(form.what_needed_from_client || editing) && (
+                  <div>
+                    <span className={labelClass}>What's Needed from Client</span>
+                    {editing ? (
+                      <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                    ) : (
+                      <div className="text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 bg-destructive/10 border border-destructive/20">
+                        {form.what_needed_from_client}
                       </div>
-                      <p className="text-xs font-body text-foreground mt-1">{c.content}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 space-y-2">
-                  <input
-                    value={commentName}
-                    onChange={(e) => setCommentName(e.target.value)}
-                    placeholder="Your name"
-                    className={inputClass}
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder="Add a comment..."
-                      className={`${inputClass} flex-1`}
-                      onKeyDown={(e) => e.key === 'Enter' && handleComment()}
-                    />
-                    <button onClick={handleComment} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Post</button>
+                    )}
                   </div>
-                </div>
-              </section>
-            </>
-          )}
+                )}
 
-          {/* Delete — always at bottom */}
-          <div className="pt-4 border-t border-border">
-            {!showDeleteConfirm ? (
-              <button onClick={() => setShowDeleteConfirm(true)} className="text-[11px] font-body text-destructive hover:underline">
-                Delete this request
-              </button>
-            ) : (
-              <div className="bg-destructive/10 border border-destructive rounded p-3 flex items-center gap-3">
-                <p className="text-xs font-body text-foreground flex-1">Are you sure? This cannot be undone.</p>
-                <button onClick={handleDelete} className="text-xs font-body bg-destructive text-destructive-foreground px-3 py-1.5 rounded">Yes, Delete</button>
-                <button onClick={() => setShowDeleteConfirm(false)} className="text-xs font-body text-muted-foreground">Cancel</button>
-              </div>
+                {(['context', 'assets_available'] as const).map((field) => {
+                  const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials' };
+                  return (
+                    <div key={field}>
+                      <span className={labelClass}>{labels[field]}</span>
+                      {editing ? (
+                        <textarea value={(form as any)[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                      ) : (
+                        <p className="text-xs font-body text-foreground whitespace-pre-wrap">{(form as any)[field] || '–'}</p>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div className="flex gap-2">
+                  {editing ? (
+                    <>
+                      <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
+                      <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+                    </>
+                  ) : (
+                    <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
+                  )}
+                </div>
+              </>
             )}
+
+            {/* Creative tab */}
+            {activeTab === 'Creative' && (
+              <CreativeTab request={request} />
+            )}
+
+            {/* Files & Comments tab */}
+            {activeTab === 'Files & Comments' && (
+              <>
+                <section>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={labelClass}>Attachments ({files.length})</span>
+                    <button onClick={() => fileInputRef.current?.click()} className="text-xs font-body text-accent hover:underline">Upload</button>
+                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.pptx,.xlsx" />
+                  </div>
+                  {files.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {files.map((f) => (
+                        <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block border border-border rounded overflow-hidden hover:border-accent transition-colors">
+                          {isImage(f.file_type) ? (
+                            <img src={f.file_url} alt={f.file_name} className="w-full h-24 object-cover" />
+                          ) : (
+                            <div className="h-24 flex items-center justify-center bg-muted">
+                              <span className="text-2xl">📄</span>
+                            </div>
+                          )}
+                          <div className="px-2 py-1 text-[10px] font-body text-muted-foreground truncate">{f.file_name}</div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <span className={labelClass}>Comments ({comments.length})</span>
+                  <div className="space-y-2 mt-2">
+                    {comments.map((c) => {
+                      const isNew = lastViewed && new Date(c.created_at) > lastViewed;
+                      return (
+                        <div key={c.id} className={`bg-muted rounded p-2 ${isNew ? 'ring-2 ring-accent/40' : ''}`}>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-semibold font-body text-foreground">{c.author_name}</span>
+                            <span className="text-[10px] font-body text-muted-foreground">{format(parseISO(c.created_at), 'MMM d, yyyy h:mm a')}</span>
+                          </div>
+                          <p className="text-xs font-body text-foreground mt-1">{c.content}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-2 space-y-2">
+                    <input
+                      value={commentName}
+                      onChange={(e) => setCommentName(e.target.value)}
+                      placeholder="Your name"
+                      className={inputClass}
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Add a comment..."
+                        className={`${inputClass} flex-1`}
+                        onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                      />
+                      <button onClick={handleComment} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Post</button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
+
+            {/* Delete — with confirmation dialog */}
+            <div className="pt-4 border-t border-border">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="text-[11px] font-body text-destructive hover:underline">
+                    Delete this request
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this request?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{request.title}" and all associated comments, files, and creative versions. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Yes, Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
