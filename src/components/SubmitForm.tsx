@@ -125,9 +125,9 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
           <p className="text-xs mt-1">
             Your request has been sent. Track it on the{' '}
             {onNavigateToRequests ? (
-              <button onClick={onNavigateToRequests} className="underline font-medium">All Requests</button>
+              <button onClick={onNavigateToRequests} className="underline font-medium">Requests</button>
             ) : (
-              <span className="font-medium">All Requests</span>
+              <span className="font-medium">Requests</span>
             )} tab.
           </p>
           {uploadFailureCount > 0 && (
