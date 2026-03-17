@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS, getClientStatus } from '@/lib/constants';
@@ -20,7 +20,7 @@ interface DetailModalProps {
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
 export default function DetailModal({ request, onClose }: DetailModalProps) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const updateRequest = useUpdateRequest();
   const deleteRequest = useDeleteRequest();
   const { data: comments = [] } = useComments(request.id);
@@ -36,7 +36,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     return current && !(OWNER_OPTIONS as readonly string[]).includes(current);
   });
   const [form, setForm] = useState<any>({ ...request });
-  const { profile } = useAuth();
   const commentName = profile?.full_name || profile?.email || 'Unknown';
   const [commentText, setCommentText] = useState('');
   const [showPublishPrompt, setShowPublishPrompt] = useState(false);
@@ -51,11 +50,11 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   }, [lastViewedKey]);
 
   // Mark as viewed on mount
-  useState(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(lastViewedKey, new Date().toISOString());
     }
-  });
+  }, [lastViewedKey]);
 
   const unreadCommentCount = useMemo(() => {
     if (!lastViewed) return comments.length > 0 ? comments.length : 0;
@@ -76,13 +75,39 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
       setShowPublishPrompt(true);
       setPublishDate(format(new Date(), 'yyyy-MM-dd'));
     }
-    // Persist stage change immediately
     try {
       await updateRequest.mutateAsync({ id: request.id, stage: newStage } as any);
       toast.success(`Stage updated to ${newStage}`);
     } catch {
       toast.error('Failed to update stage');
-      setForm({ ...form, stage: request.stage }); // revert
+      setForm({ ...form, stage: request.stage });
+    }
+  };
+
+  const handleMarkAsPublished = () => {
+    setShowPublishPrompt(true);
+    setPublishDate(format(new Date(), 'yyyy-MM-dd'));
+  };
+
+  const handlePublishDateConfirm = async () => {
+    setForm({ ...form, actual_publish_date: publishDate || null, stage: 'Published' });
+    setShowPublishPrompt(false);
+    try {
+      await updateRequest.mutateAsync({ id: request.id, stage: 'Published', actual_publish_date: publishDate || null } as any);
+      toast.success('Marked as published!');
+    } catch {
+      toast.error('Failed to update');
+    }
+  };
+
+  const handlePublishDateSkip = async () => {
+    setShowPublishPrompt(false);
+    setForm({ ...form, stage: 'Published' });
+    try {
+      await updateRequest.mutateAsync({ id: request.id, stage: 'Published' } as any);
+      toast.success('Marked as published!');
+    } catch {
+      toast.error('Failed to update');
     }
   };
 
@@ -118,15 +143,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     }
   };
 
-  const handlePublishDateConfirm = async () => {
-    setForm({ ...form, actual_publish_date: publishDate || null });
-    setShowPublishPrompt(false);
-  };
-
-  const handlePublishDateSkip = () => {
-    setShowPublishPrompt(false);
-  };
-
   const handleDelete = async () => {
     try {
       await deleteRequest.mutateAsync(request.id);
@@ -146,7 +162,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
         content: commentText,
       });
       setCommentText('');
-      // Update last viewed time after posting
       if (typeof window !== 'undefined') {
         localStorage.setItem(lastViewedKey, new Date().toISOString());
       }
@@ -188,7 +203,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   return (
     <TooltipProvider>
       <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-12 px-0 md:px-4 overflow-y-auto">
-        <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-[700px] shadow-lg min-h-screen md:min-h-0 md:mb-8">
+        <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-3xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
           {/* Header */}
           <div className="px-5 py-3 border-b border-border">
             <div className="flex items-start justify-between gap-2">
@@ -263,6 +278,18 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
             </div>
           </div>
 
+          {/* Mark as Published button for admin when Scheduled */}
+          {isAdmin && form.stage === 'Scheduled' && !showPublishPrompt && (
+            <div className="mx-5 mt-3">
+              <button
+                onClick={handleMarkAsPublished}
+                className="w-full text-sm font-body font-semibold bg-[hsl(145,63%,42%)] text-white px-4 py-2.5 rounded-lg hover:opacity-90"
+              >
+                ✓ Mark as Published
+              </button>
+            </div>
+          )}
+
           {/* Publish date prompt */}
           {showPublishPrompt && (
             <div className="mx-5 mt-3 p-3 bg-accent/10 border border-accent rounded space-y-2">
@@ -270,19 +297,19 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={inputClass} />
               <div className="flex gap-2">
                 <button onClick={handlePublishDateConfirm} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded">Set Date</button>
-                <button onClick={handlePublishDateSkip} className="text-xs font-body text-muted-foreground hover:text-foreground">Skip</button>
+                <button onClick={handlePublishDateSkip} className="text-xs font-body text-muted-foreground hover:text-foreground">Skip (use today)</button>
               </div>
             </div>
           )}
 
           {/* Pending asset alert */}
           {pendingAssets.length > 0 && (
-            <div className="mx-5 mt-3 p-3 bg-[#F1C40F]/10 border border-[#F1C40F]/30 rounded">
+            <div className="mx-5 mt-3 p-3 bg-[hsl(48,89%,50%)]/10 border border-[hsl(48,89%,50%)]/30 rounded">
               <p className="text-xs font-body font-semibold text-foreground">📦 {pendingAssets.length} asset{pendingAssets.length > 1 ? 's' : ''} still needed</p>
               <div className="mt-1 space-y-0.5">
                 {pendingAssets.map((a) => (
                   <p key={a.id} className="text-[11px] font-body text-muted-foreground">
-                    • {a.title} — <span className={a.status === 'Blocking' ? 'text-destructive font-medium' : 'text-[#F1C40F]'}>{a.status}</span>
+                    • {a.title} — <span className={a.status === 'Blocking' ? 'text-destructive font-medium' : 'text-[hsl(48,89%,50%)]'}>{a.status}</span>
                   </p>
                 ))}
               </div>
@@ -347,47 +374,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                       <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
                     )}
                   </div>
-                  {isAdmin && (
-                    <div>
-                      <span className={labelClass}>Actual Publish Date</span>
-                      {editing ? (
-                        <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-                      ) : (
-                        <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-                      )}
-                    </div>
-                  )}
-                  {isAdmin && (
-                    <div>
-                      <span className={labelClass}>Owner</span>
-                      {editing ? (
-                        ownerIsOther ? (
-                          <div className="flex gap-1">
-                            <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={`${inputClass} flex-1`} placeholder="Enter name" />
-                            <button onClick={() => { setOwnerIsOther(false); setForm({ ...form, owner: 'Archway' }); }} className="text-[10px] font-body text-muted-foreground hover:text-foreground">✕</button>
-                          </div>
-                        ) : (
-                          <select
-                            value={form.owner || 'Archway'}
-                            onChange={(e) => {
-                              if (e.target.value === '__other__') {
-                                setOwnerIsOther(true);
-                                setForm({ ...form, owner: '' });
-                              } else {
-                                setForm({ ...form, owner: e.target.value });
-                              }
-                            }}
-                            className={inputClass}
-                          >
-                            {OWNER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                            <option value="__other__">Other…</option>
-                          </select>
-                        )
-                      ) : (
-                        <p className="text-foreground">{form.owner || '–'}</p>
-                      )}
-                    </div>
-                  )}
                   <div>
                     <span className={labelClass}>Contact Person</span>
                     {editing ? (
@@ -406,19 +392,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   </div>
                 </div>
 
-                {editing && (
-                  <div className="space-y-1">
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
-                      <span className="text-xs font-body text-foreground">Hard deadline or event</span>
-                    </label>
-                    {form.has_hard_deadline && (
-                      <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
-                    )}
-                  </div>
-                )}
-
-                {/* What's Needed from Client — admin can edit, client sees read-only if populated */}
+                {/* What's Needed from Client — visible to all if populated */}
                 {isAdmin ? (
                   (form.what_needed_from_client || editing) && (
                     <div>
@@ -456,6 +430,72 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                     </div>
                   );
                 })}
+
+                {/* Archway Internal section — admin only */}
+                {isAdmin && (
+                  <>
+                    <div className="relative py-3">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center">
+                        <span className="bg-card px-3 text-[10px] font-body font-semibold text-muted-foreground uppercase tracking-wider">Archway Internal</span>
+                      </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
+                      <div>
+                        <span className={labelClass}>Actual Publish Date</span>
+                        {editing ? (
+                          <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+                        ) : (
+                          <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
+                        )}
+                      </div>
+                      <div>
+                        <span className={labelClass}>Owner</span>
+                        {editing ? (
+                          ownerIsOther ? (
+                            <div className="flex gap-1">
+                              <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={`${inputClass} flex-1`} placeholder="Enter name" />
+                              <button onClick={() => { setOwnerIsOther(false); setForm({ ...form, owner: 'Archway' }); }} className="text-[10px] font-body text-muted-foreground hover:text-foreground">✕</button>
+                            </div>
+                          ) : (
+                            <select
+                              value={form.owner || 'Archway'}
+                              onChange={(e) => {
+                                if (e.target.value === '__other__') {
+                                  setOwnerIsOther(true);
+                                  setForm({ ...form, owner: '' });
+                                } else {
+                                  setForm({ ...form, owner: e.target.value });
+                                }
+                              }}
+                              className={inputClass}
+                            >
+                              {OWNER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                              <option value="__other__">Other…</option>
+                            </select>
+                          )
+                        ) : (
+                          <p className="text-foreground">{form.owner || '–'}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {editing && (
+                      <div className="space-y-1">
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
+                          <span className="text-xs font-body text-foreground">Hard deadline or event</span>
+                        </label>
+                        {form.has_hard_deadline && (
+                          <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {isAdmin && (
                   <div className="flex gap-2">

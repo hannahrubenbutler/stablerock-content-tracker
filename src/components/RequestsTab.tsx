@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { SERVICE_LINES, CONTENT_TYPES, getClientStatus } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 
 interface RequestsTabProps {
@@ -15,14 +15,16 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
 
   const [serviceFilter, setServiceFilter] = useState('');
   const [contentFilter, setContentFilter] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   // Requests tab shows: Requested, Needs Info, In Progress, In Simplified, On Hold
   const tabRequests = useMemo(() => {
+    if (showAll) return requests;
     return requests.filter((r) => {
       const cs = getClientStatus(r.stage);
       return cs.tab === 'requests';
     });
-  }, [requests]);
+  }, [requests, showAll]);
 
   const filtered = useMemo(() => {
     return tabRequests.filter((r) => {
@@ -30,7 +32,13 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
       if (contentFilter && r.content_type !== contentFilter) return false;
       return true;
     }).sort((a, b) => {
-      // Sort by priority (High first), then by date
+      // Primary sort: due date (soonest first), no-date items at bottom
+      const aDate = a.target_date;
+      const bDate = b.target_date;
+      if (aDate && !bDate) return -1;
+      if (!aDate && bDate) return 1;
+      if (aDate && bDate && aDate !== bDate) return aDate > bDate ? 1 : -1;
+      // Tiebreaker: priority
       const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
       const aPri = priorityOrder[a.priority] ?? 1;
       const bPri = priorityOrder[b.priority] ?? 1;
@@ -45,6 +53,22 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
+        <button
+          onClick={() => setShowAll(false)}
+          className={`text-xs font-body px-3 py-1.5 rounded-full border transition-colors ${
+            !showAll ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent'
+          }`}
+        >
+          Active
+        </button>
+        <button
+          onClick={() => setShowAll(true)}
+          className={`text-xs font-body px-3 py-1.5 rounded-full border transition-colors ${
+            showAll ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent'
+          }`}
+        >
+          All
+        </button>
         <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className={inputClass}>
           <option value="">All Service Lines</option>
           {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
@@ -73,6 +97,8 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
           {filtered.map((r) => {
             const cs = getClientStatus(r.stage);
             const req = r as any;
+            const daysSinceCreated = differenceInDays(new Date(), parseISO(r.created_at));
+            const isAging = daysSinceCreated >= 7 && r.stage === 'Requested';
             return (
               <button
                 key={r.id}
@@ -88,9 +114,17 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <ServiceLineBadge label={r.service_line} />
                       <ContentTypeBadge label={r.content_type} />
+                      <span className="text-[11px] font-body text-muted-foreground">
+                        Submitted {format(parseISO(r.created_at), 'MMM d')}
+                        {isAging && (
+                          <span className="ml-1 text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                            {daysSinceCreated}+ days
+                          </span>
+                        )}
+                      </span>
                       {r.target_date && (
                         <span className="text-[11px] font-body text-muted-foreground">
-                          Due {format(parseISO(r.target_date), 'MMM d, yyyy')}
+                          | Due {format(parseISO(r.target_date), 'MMM d, yyyy')}
                         </span>
                       )}
                       {req.contact_person && (
@@ -113,11 +147,13 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
                       {cs.label}
                     </span>
                     {isAdmin && (
-                      <span className="text-[10px] font-body text-muted-foreground">{r.stage}</span>
+                      <>
+                        <span className="text-[10px] font-body text-muted-foreground">{r.stage}</span>
+                        {req.owner && (
+                          <span className="text-[10px] font-body text-muted-foreground">{req.owner}</span>
+                        )}
+                      </>
                     )}
-                    <span className="text-[10px] font-body text-muted-foreground">
-                      {format(parseISO(r.created_at), 'MMM d')}
-                    </span>
                   </div>
                 </div>
               </button>

@@ -65,7 +65,7 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     }).sort((a, b) => a.target_date! > b.target_date! ? 1 : -1);
   }, [requests]);
 
-  // Needs attention
+  // Needs attention — group by contact_person only
   const needsClientAction = useMemo(() => {
     return requests.filter((r) => r.what_needed_from_client?.trim() && r.stage !== 'Published');
   }, [requests]);
@@ -73,11 +73,18 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
   const needsClientGrouped = useMemo(() => {
     const groups: Record<string, Request[]> = {};
     needsClientAction.forEach((r) => {
-      const person = (r as any).contact_person || r.owner || 'Unassigned';
-      if (!groups[person]) groups[person] = [];
-      groups[person].push(r);
+      const person = (r as any).contact_person || '';
+      const key = person || '__unassigned__';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
     });
-    return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+    // Sort: named groups first sorted by count desc, unassigned last
+    const entries = Object.entries(groups);
+    return entries.sort((a, b) => {
+      if (a[0] === '__unassigned__') return 1;
+      if (b[0] === '__unassigned__') return -1;
+      return b[1].length - a[1].length;
+    });
   }, [needsClientAction]);
 
   // Monthly grids
@@ -106,6 +113,13 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
   };
   const slColumnTotals = useMemo(() => computeColumnTotals(serviceLineMonthly), [serviceLineMonthly]);
   const ctColumnTotals = useMemo(() => computeColumnTotals(contentTypeMonthly), [contentTypeMonthly]);
+
+  const statCards = [
+    { label: 'Requests in progress', count: inProgressCount, tab: 'Requests' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
+    { label: reviewCount > 0 ? 'Ready for review ⚡' : 'Ready for review', count: reviewCount, tab: 'Review' as TabName, borderColor: 'hsl(28, 80%, 52%)', highlight: reviewCount > 0 },
+    { label: 'Scheduled', count: scheduledCount, tab: 'Approved' as TabName, borderColor: 'hsl(168, 76%, 42%)' },
+    { label: 'Published this month', count: publishedThisMonth, tab: null, borderColor: 'hsl(145, 63%, 42%)' },
+  ];
 
   const renderWeekItem = (r: Request) => {
     const cs = getClientStatus(r.stage);
@@ -141,24 +155,27 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     <div className="space-y-6">
       {/* 1. Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <button onClick={() => onTabChange('Requests')} className="bg-card border border-border rounded-lg p-4 text-center hover:border-accent transition-colors">
-          <div className="text-2xl font-bold font-body text-foreground">{inProgressCount}</div>
-          <div className="text-xs text-muted-foreground font-body mt-1">Requests in progress</div>
-        </button>
-        <button onClick={() => onTabChange('Review')} className={`border rounded-lg p-4 text-center hover:border-accent transition-colors ${reviewCount > 0 ? 'bg-[#E67E22]/10 border-[#E67E22]/30' : 'bg-card border-border'}`}>
-          <div className={`text-2xl font-bold font-body ${reviewCount > 0 ? 'text-[#E67E22]' : 'text-foreground'}`}>{reviewCount}</div>
-          <div className={`text-xs font-body mt-1 ${reviewCount > 0 ? 'text-[#E67E22] font-semibold' : 'text-muted-foreground'}`}>
-            {reviewCount > 0 ? 'Ready for review ⚡' : 'Ready for review'}
-          </div>
-        </button>
-        <button onClick={() => onTabChange('Approved')} className="bg-card border border-border rounded-lg p-4 text-center hover:border-accent transition-colors">
-          <div className="text-2xl font-bold font-body text-foreground">{scheduledCount}</div>
-          <div className="text-xs text-muted-foreground font-body mt-1">Scheduled</div>
-        </button>
-        <div className="bg-card border border-border rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold font-body text-[#27AE60]">{publishedThisMonth}</div>
-          <div className="text-xs text-muted-foreground font-body mt-1">Published this month</div>
-        </div>
+        {statCards.map((card) => {
+          const isClickable = card.tab !== null;
+          const Comp = isClickable ? 'button' : 'div';
+          return (
+            <Comp
+              key={card.label}
+              onClick={isClickable ? () => onTabChange(card.tab!) : undefined}
+              className={`rounded-lg p-4 text-center transition-colors border-t-[3px] ${
+                card.highlight
+                  ? 'bg-accent/10 border-border shadow-sm'
+                  : 'bg-card border-border shadow-sm'
+              } ${isClickable ? 'hover:border-accent cursor-pointer' : ''}`}
+              style={{ borderTopColor: card.borderColor }}
+            >
+              <div className={`text-2xl font-bold font-body ${card.highlight ? 'text-accent' : 'text-foreground'}`}>{card.count}</div>
+              <div className={`text-xs font-body mt-1 ${card.highlight ? 'text-accent font-semibold' : 'text-muted-foreground'}`}>
+                {card.label}
+              </div>
+            </Comp>
+          );
+        })}
       </div>
 
       {/* 2. Ready for Review */}
@@ -194,7 +211,9 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
             {needsClientGrouped.map(([person, items]) => (
               <div key={person}>
                 <h3 className="text-xs font-semibold font-body text-foreground mb-1 flex items-center gap-2">
-                  <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded">{person}</span>
+                  <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                    {person === '__unassigned__' ? 'Not yet assigned' : person}
+                  </span>
                   <span className="text-muted-foreground font-normal">{items.length} item{items.length > 1 ? 's' : ''}</span>
                 </h3>
                 <div className="space-y-1">
@@ -245,8 +264,8 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
                     </tr>
                   );
                 })}
-                <tr className="border-t-2 border-border bg-muted/30">
-                  <td className="px-3 py-2 font-semibold text-foreground">Total</td>
+                <tr className="border-t-2 border-border bg-muted/50">
+                  <td className="px-3 py-2 font-bold text-foreground">Total</td>
                   {slColumnTotals.map((t, i) => <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>)}
                   <td className="px-3 py-2 text-center font-bold text-foreground">{slColumnTotals.reduce((a, b) => a + b, 0)}</td>
                 </tr>
@@ -282,8 +301,8 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
                     </tr>
                   );
                 })}
-                <tr className="border-t-2 border-border bg-muted/30">
-                  <td className="px-3 py-2 font-semibold text-foreground">Total</td>
+                <tr className="border-t-2 border-border bg-muted/50">
+                  <td className="px-3 py-2 font-bold text-foreground">Total</td>
                   {ctColumnTotals.map((t, i) => <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>)}
                   <td className="px-3 py-2 text-center font-bold text-foreground">{ctColumnTotals.reduce((a, b) => a + b, 0)}</td>
                 </tr>
