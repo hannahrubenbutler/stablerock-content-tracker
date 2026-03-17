@@ -1,21 +1,19 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Settings, LogOut } from 'lucide-react';
 
-const CLIENT_TABS = ['Dashboard', 'All Requests', 'Calendar'] as const;
-const ADMIN_TABS = ['Dashboard', 'All Requests', 'Calendar', 'Assets'] as const;
+const NAV_TABS = ['Dashboard', 'Requests', 'Review', 'Approved'] as const;
 
-const ALL_TABS = ['Dashboard', 'All Requests', 'Calendar', 'Assets', 'Submit', 'Settings'] as const;
+const ALL_TABS = ['Dashboard', 'Requests', 'Review', 'Approved', 'Submit', 'Settings'] as const;
 export type TabName = (typeof ALL_TABS)[number];
 
 interface AppHeaderProps {
   activeTab: TabName;
   onTabChange: (tab: TabName) => void;
-  needsActionCount?: number;
+  reviewCount?: number;
 }
 
-export default function AppHeader({ activeTab, onTabChange, needsActionCount = 0 }: AppHeaderProps) {
+export default function AppHeader({ activeTab, onTabChange, reviewCount = 0 }: AppHeaderProps) {
   const { isAdmin, profile, signOut } = useAuth();
-  const navTabs = isAdmin ? ADMIN_TABS : CLIENT_TABS;
 
   return (
     <header>
@@ -55,10 +53,10 @@ export default function AppHeader({ activeTab, onTabChange, needsActionCount = 0
       </div>
       {/* Border accent */}
       <div className="h-0.5 bg-accent" />
-      {/* Tab navigation — horizontal scroll on mobile */}
+      {/* Tab navigation */}
       <nav className="bg-card border-b border-border overflow-x-auto">
         <div className="flex whitespace-nowrap items-center">
-          {navTabs.map((tab) => (
+          {NAV_TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
@@ -69,9 +67,9 @@ export default function AppHeader({ activeTab, onTabChange, needsActionCount = 0
               }`}
             >
               {tab}
-              {tab === 'Dashboard' && needsActionCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  {needsActionCount}
+              {tab === 'Review' && reviewCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  {reviewCount}
                 </span>
               )}
             </button>
