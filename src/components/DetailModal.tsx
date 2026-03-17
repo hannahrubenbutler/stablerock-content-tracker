@@ -224,7 +224,7 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   <TooltipTrigger asChild>
                     <select
                       value={form.stage}
-                      onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+                      onChange={(e) => handleStageChange(e.target.value)}
                       className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
                       style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
                     >
