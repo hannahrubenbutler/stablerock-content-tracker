@@ -16,6 +16,7 @@ export default function AssetsView() {
   const [newDueDate, setNewDueDate] = useState('');
   const [newServiceLine, setNewServiceLine] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [newRequestId, setNewRequestId] = useState('');
 
   const handleAdd = async () => {
     if (!newTitle.trim()) return;
@@ -24,8 +25,11 @@ export default function AssetsView() {
         title: newTitle,
         description: newDesc || null,
         status: 'Waiting',
-        request_id: null,
+        request_id: newRequestId || null,
         assigned_to: newAssigned || null,
+        due_date: newDueDate || null,
+        service_line: newServiceLine || null,
+        notes: newNotes || null,
       } as any);
       toast.success('Asset added');
       setNewTitle('');
@@ -34,6 +38,7 @@ export default function AssetsView() {
       setNewDueDate('');
       setNewServiceLine('');
       setNewNotes('');
+      setNewRequestId('');
       setShowForm(false);
     } catch {
       toast.error('Failed to add asset');
@@ -47,7 +52,6 @@ export default function AssetsView() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Build request lookup for blocking indicator
   const requestMap = new Map(requests.map((r) => [r.id, r]));
 
   const isOverdue = (dueStr: string | null, status: string) => {
@@ -91,8 +95,12 @@ export default function AssetsView() {
               <option value="">Service Line (optional)</option>
               {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
             </select>
-            <input value={newNotes} onChange={(e) => setNewNotes(e.target.value)} placeholder="Notes..." className="w-full text-sm font-body bg-background border border-border rounded px-3 py-2 text-foreground" />
+            <select value={newRequestId} onChange={(e) => setNewRequestId(e.target.value)} className="w-full text-sm font-body bg-background border border-border rounded px-3 py-2 text-foreground">
+              <option value="">Link to request (optional)</option>
+              {requests.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+            </select>
           </div>
+          <input value={newNotes} onChange={(e) => setNewNotes(e.target.value)} placeholder="Notes..." className="w-full text-sm font-body bg-background border border-border rounded px-3 py-2 text-foreground" />
           <button onClick={handleAdd} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded">Save</button>
         </div>
       )}
