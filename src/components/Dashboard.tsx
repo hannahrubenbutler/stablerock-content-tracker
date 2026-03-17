@@ -20,12 +20,24 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
   }, [requests]);
 
   const thisWeek = useMemo(() => {
-    const today = startOfDay(new Date());
-    const end = addDays(today, 7);
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
     return requests.filter((r) => {
       if (!r.target_date || r.stage === 'Published') return false;
       const d = parseISO(r.target_date);
-      return d >= today && d <= end;
+      return isWithinInterval(d, { start: weekStart, end: weekEnd });
+    }).sort((a, b) => (a.target_date! > b.target_date! ? 1 : -1));
+  }, [requests]);
+
+  const nextWeek = useMemo(() => {
+    const now = new Date();
+    const nextWeekStart = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    const nextWeekEnd = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+    return requests.filter((r) => {
+      if (!r.target_date || r.stage === 'Published') return false;
+      const d = parseISO(r.target_date);
+      return isWithinInterval(d, { start: nextWeekStart, end: nextWeekEnd });
     }).sort((a, b) => (a.target_date! > b.target_date! ? 1 : -1));
   }, [requests]);
 
