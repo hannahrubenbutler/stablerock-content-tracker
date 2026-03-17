@@ -136,7 +136,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
         </div>,
         { duration: 6000 }
       );
-      setForm((prev) => ({ ...prev, title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', contact_person: '' }));
+      setForm({ title: '', service_line: '', priority: 'Medium', context: '', assets_available: '', contact_person: '' });
       setSelectedTypes([]);
       setNotSure(false);
       setSelectedFiles([]);
