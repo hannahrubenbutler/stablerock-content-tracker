@@ -342,14 +342,16 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                       <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
                     )}
                   </div>
-                  <div>
-                    <span className={labelClass}>Actual Publish Date</span>
-                    {editing ? (
-                      <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-                    ) : (
-                      <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-                    )}
-                  </div>
+                  {isAdmin && (
+                    <div>
+                      <span className={labelClass}>Actual Publish Date</span>
+                      {editing ? (
+                        <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+                      ) : (
+                        <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
+                      )}
+                    </div>
+                  )}
                   {isAdmin && (
                     <div>
                       <span className={labelClass}>Owner</span>
