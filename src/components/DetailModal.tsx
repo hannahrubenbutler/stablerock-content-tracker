@@ -452,16 +452,18 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   );
                 })}
 
-                <div className="flex gap-2">
-                  {editing ? (
-                    <>
-                      <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
-                      <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-                    </>
-                  ) : (
-                    <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
-                  )}
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    {editing ? (
+                      <>
+                        <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
+                        <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
