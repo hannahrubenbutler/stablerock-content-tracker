@@ -18,8 +18,9 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const { data: files = [] } = useFileReferences(request.id);
   const uploadFile = useUploadFile();
 
+  const req = request as any;
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ ...request });
+  const [form, setForm] = useState<any>({ ...request });
   const [commentName, setCommentName] = useState('');
   const [commentText, setCommentText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -33,8 +34,8 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
         description: form.description,
         service_line: form.service_line,
         content_type: form.content_type,
-        stage: form.stage as any,
-        priority: form.priority as any,
+        stage: form.stage,
+        priority: form.priority,
         target_date: form.target_date,
         event_promo_date: form.event_promo_date,
         context: form.context,
@@ -42,7 +43,14 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
         submitter_name: form.submitter_name,
         owner: form.owner,
         what_needed_from_client: form.what_needed_from_client,
-      });
+        contact_person: form.contact_person,
+        date_mode: form.date_mode,
+        date_range_end: form.date_range_end,
+        flexible_date_text: form.flexible_date_text,
+        has_hard_deadline: form.has_hard_deadline,
+        deadline_text: form.deadline_text,
+        actual_publish_date: form.actual_publish_date,
+      } as any);
       toast.success('Request updated');
       setEditing(false);
     } catch {
@@ -90,6 +98,18 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const inputClass = "w-full text-sm font-body bg-background border border-border rounded px-2 py-1.5 text-foreground";
   const labelClass = "text-xs font-medium font-body text-muted-foreground";
 
+  const formatDateInfo = () => {
+    if (req.date_mode === 'flexible') {
+      return req.flexible_date_text ? `Flexible: ${req.flexible_date_text}` : 'Flexible timing';
+    }
+    if (req.date_mode === 'range' && request.target_date) {
+      const start = format(parseISO(request.target_date), 'MMM d, yyyy');
+      const end = req.date_range_end ? format(parseISO(req.date_range_end), 'MMM d, yyyy') : '?';
+      return `${start} – ${end}`;
+    }
+    return request.target_date ? format(parseISO(request.target_date), 'MMM d, yyyy') : '–';
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-16 px-0 md:px-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-2xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
@@ -114,6 +134,11 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <ServiceLineBadge label={form.service_line} />
                 <ContentTypeBadge label={form.content_type} />
                 <span className="text-xs font-body text-muted-foreground bg-muted px-2 py-0.5 rounded">{form.stage}</span>
+                {req.has_hard_deadline && req.deadline_text && (
+                  <span className="text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
+                    🔴 {req.deadline_text}
+                  </span>
+                )}
               </>
             ) : (
               <>
@@ -123,10 +148,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <select value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
                 </select>
-                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value as Request['stage'] })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Request['priority'] })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
@@ -138,11 +163,34 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
           {/* Fields */}
           <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
             <div>
-              <span className={labelClass}>Target Date</span>
+              <span className={labelClass}>Requested Date</span>
               {editing ? (
-                <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
+                <div className="space-y-1">
+                  <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
+                    <option value="specific">Specific Date</option>
+                    <option value="range">Date Range</option>
+                    <option value="flexible">Flexible</option>
+                  </select>
+                  {(form.date_mode || 'specific') !== 'flexible' && (
+                    <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
+                  )}
+                  {form.date_mode === 'range' && (
+                    <input type="date" value={form.date_range_end || ''} onChange={(e) => setForm({ ...form, date_range_end: e.target.value || null })} className={inputClass} placeholder="End date" />
+                  )}
+                  {form.date_mode === 'flexible' && (
+                    <input value={form.flexible_date_text || ''} onChange={(e) => setForm({ ...form, flexible_date_text: e.target.value || null })} className={inputClass} placeholder="e.g. sometime in April" />
+                  )}
+                </div>
               ) : (
-                <p className="text-foreground">{form.target_date ? format(parseISO(form.target_date), 'MMM d, yyyy') : '–'}</p>
+                <p className="text-foreground">{formatDateInfo()}</p>
+              )}
+            </div>
+            <div>
+              <span className={labelClass}>Actual Publish Date</span>
+              {editing ? (
+                <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+              ) : (
+                <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
               )}
             </div>
             <div>
@@ -151,6 +199,14 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
               ) : (
                 <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
+              )}
+            </div>
+            <div>
+              <span className={labelClass}>Contact Person</span>
+              {editing ? (
+                <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
+              ) : (
+                <p className="text-foreground">{req.contact_person || '–'}</p>
               )}
             </div>
             <div>
@@ -171,16 +227,29 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
             </div>
           </div>
 
+          {/* Hard Deadline (edit mode) */}
+          {editing && (
+            <div className="space-y-1">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
+                <span className="text-xs font-body text-foreground">Hard deadline or event</span>
+              </label>
+              {form.has_hard_deadline && (
+                <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
+              )}
+            </div>
+          )}
+
           {/* Text fields */}
           {(['context', 'assets_available', 'what_needed_from_client'] as const).map((field) => {
-            const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets Available', what_needed_from_client: "What's Needed from Client" };
+            const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials', what_needed_from_client: "What's Needed from Client" };
             return (
               <div key={field}>
                 <span className={labelClass}>{labels[field]}</span>
                 {editing ? (
-                  <textarea value={form[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                  <textarea value={(form as any)[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
                 ) : (
-                  <p className="text-xs font-body text-foreground whitespace-pre-wrap">{form[field] || '–'}</p>
+                  <p className="text-xs font-body text-foreground whitespace-pre-wrap">{(form as any)[field] || '–'}</p>
                 )}
               </div>
             );

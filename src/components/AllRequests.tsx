@@ -46,6 +46,29 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
     updateRequest.mutate({ id, stage: newStage as any });
   };
 
+  const formatDateCell = (r: any) => {
+    const req = r as any;
+    if (req.date_mode === 'flexible') {
+      if (r.target_date) {
+        return <span className="text-muted-foreground">{format(parseISO(r.target_date), 'MMM d, yyyy')}</span>;
+      }
+      return <span className="text-muted-foreground/60 italic">Flexible</span>;
+    }
+    if (req.date_mode === 'range' && r.target_date) {
+      return (
+        <span className="text-muted-foreground">
+          {format(parseISO(r.target_date), 'MMM d')}
+          {req.date_range_end && (
+            <span className="ml-1 text-[10px] bg-muted px-1.5 py-0.5 rounded">
+              – {format(parseISO(req.date_range_end), 'MMM d')}
+            </span>
+          )}
+        </span>
+      );
+    }
+    return <span className="text-muted-foreground">{r.target_date ? format(parseISO(r.target_date), 'MMM d, yyyy') : '–'}</span>;
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -94,6 +117,7 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
               <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No requests found.</td></tr>
             ) : (
               filtered.map((r) => {
+                const req = r as any;
                 const cc = metaCounts?.commentCounts[r.id] || 0;
                 const fc = metaCounts?.fileCounts[r.id] || 0;
                 return (
@@ -112,8 +136,13 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
                           📅 {format(parseISO(r.event_promo_date), 'MMM d')}
                         </span>
                       )}
+                      {req.has_hard_deadline && req.deadline_text && (
+                        <span className="ml-2 text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
+                          🔴 {req.deadline_text}
+                        </span>
+                      )}
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground">{r.target_date ? format(parseISO(r.target_date), 'MMM d, yyyy') : '–'}</td>
+                    <td className="px-3 py-2">{formatDateCell(r)}</td>
                     <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={r.stage}
