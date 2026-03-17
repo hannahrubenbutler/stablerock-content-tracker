@@ -350,14 +350,37 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                       <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
                     )}
                   </div>
-                  <div>
-                    <span className={labelClass}>Owner</span>
-                    {editing ? (
-                      <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
-                    ) : (
-                      <p className="text-foreground">{form.owner || '–'}</p>
-                    )}
-                  </div>
+                  {isAdmin && (
+                    <div>
+                      <span className={labelClass}>Owner</span>
+                      {editing ? (
+                        ownerIsOther ? (
+                          <div className="flex gap-1">
+                            <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={`${inputClass} flex-1`} placeholder="Enter name" />
+                            <button onClick={() => { setOwnerIsOther(false); setForm({ ...form, owner: 'Archway' }); }} className="text-[10px] font-body text-muted-foreground hover:text-foreground">✕</button>
+                          </div>
+                        ) : (
+                          <select
+                            value={form.owner || 'Archway'}
+                            onChange={(e) => {
+                              if (e.target.value === '__other__') {
+                                setOwnerIsOther(true);
+                                setForm({ ...form, owner: '' });
+                              } else {
+                                setForm({ ...form, owner: e.target.value });
+                              }
+                            }}
+                            className={inputClass}
+                          >
+                            {OWNER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                            <option value="__other__">Other…</option>
+                          </select>
+                        )
+                      ) : (
+                        <p className="text-foreground">{form.owner || '–'}</p>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <span className={labelClass}>Contact Person</span>
                     {editing ? (
