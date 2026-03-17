@@ -1,14 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import CreativeTab from '@/components/CreativeTab';
 
 interface DetailModalProps {
   request: Request;
   onClose: () => void;
 }
+
+type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
 export default function DetailModal({ request, onClose }: DetailModalProps) {
   const updateRequest = useUpdateRequest();
@@ -30,7 +33,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const [publishDate, setPublishDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Detect stage change to Published
+  // Default to Creative tab if in Client Review or Scheduled
+  const defaultTab: ModalTab = (request.stage === 'Client Review' || request.stage === 'Scheduled') ? 'Creative' : 'Details';
+  const [activeTab, setActiveTab] = useState<ModalTab>(defaultTab);
+
   const handleStageChange = (newStage: string) => {
     setForm({ ...form, stage: newStage });
     if (newStage === 'Published' && !form.actual_publish_date) {
@@ -132,10 +138,12 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     return request.target_date ? format(parseISO(request.target_date), 'MMM d, yyyy') : '–';
   };
 
+  const tabs: ModalTab[] = ['Details', 'Creative', 'Files & Comments'];
+
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-16 px-0 md:px-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-2xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
-        {/* Header — Title large + stage dropdown prominent */}
+        {/* Header */}
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -148,7 +156,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2 shrink-0">&times;</button>
           </div>
 
-          {/* Badges + stage dropdown row */}
           <div className="flex items-center gap-2 flex-wrap mt-2">
             <PriorityDot priority={form.priority} />
             {!editing ? (
@@ -166,7 +173,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 </select>
               </>
             )}
-            {/* Stage dropdown — always visible and prominent */}
             <select
               value={form.stage}
               onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
@@ -202,190 +208,211 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
           </div>
         )}
 
+        {/* Tab navigation */}
+        <div className="flex border-b border-border px-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`text-xs font-body font-medium px-3 py-2.5 border-b-2 transition-colors ${activeTab === tab ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
         <div className="p-4 space-y-4">
-          {/* Two-column: dates left, owner/contact right */}
-          <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
-            <div>
-              <span className={labelClass}>Submitted</span>
-              <p className="text-foreground">{format(parseISO(request.created_at), 'MMM d, yyyy')}</p>
-            </div>
-            <div>
-              <span className={labelClass}>Due Date</span>
-              {editing ? (
-                <div className="space-y-1">
-                  <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
-                    <option value="specific">Specific Date</option>
-                    <option value="range">Date Range</option>
-                    <option value="flexible">Flexible</option>
-                  </select>
-                  {(form.date_mode || 'specific') !== 'flexible' && (
-                    <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
-                  )}
-                  {form.date_mode === 'range' && (
-                    <input type="date" value={form.date_range_end || ''} onChange={(e) => setForm({ ...form, date_range_end: e.target.value || null })} className={inputClass} placeholder="End date" />
-                  )}
-                  {form.date_mode === 'flexible' && (
-                    <input value={form.flexible_date_text || ''} onChange={(e) => setForm({ ...form, flexible_date_text: e.target.value || null })} className={inputClass} placeholder="e.g. sometime in April" />
+          {/* Details tab */}
+          {activeTab === 'Details' && (
+            <>
+              <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
+                <div>
+                  <span className={labelClass}>Submitted</span>
+                  <p className="text-foreground">{format(parseISO(request.created_at), 'MMM d, yyyy')}</p>
+                </div>
+                <div>
+                  <span className={labelClass}>Due Date</span>
+                  {editing ? (
+                    <div className="space-y-1">
+                      <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
+                        <option value="specific">Specific Date</option>
+                        <option value="range">Date Range</option>
+                        <option value="flexible">Flexible</option>
+                      </select>
+                      {(form.date_mode || 'specific') !== 'flexible' && (
+                        <input type="date" value={form.target_date || ''} onChange={(e) => setForm({ ...form, target_date: e.target.value || null })} className={inputClass} />
+                      )}
+                      {form.date_mode === 'range' && (
+                        <input type="date" value={form.date_range_end || ''} onChange={(e) => setForm({ ...form, date_range_end: e.target.value || null })} className={inputClass} placeholder="End date" />
+                      )}
+                      {form.date_mode === 'flexible' && (
+                        <input value={form.flexible_date_text || ''} onChange={(e) => setForm({ ...form, flexible_date_text: e.target.value || null })} className={inputClass} placeholder="e.g. sometime in April" />
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-foreground">{formatDateInfo()}</p>
                   )}
                 </div>
-              ) : (
-                <p className="text-foreground">{formatDateInfo()}</p>
-              )}
-            </div>
-            <div>
-              <span className={labelClass}>Event / Promo Date</span>
-              {editing ? (
-                <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
-              )}
-            </div>
-            <div>
-              <span className={labelClass}>Actual Publish Date</span>
-              {editing ? (
-                <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-              )}
-            </div>
-            <div>
-              <span className={labelClass}>Owner</span>
-              {editing ? (
-                <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{form.owner || '–'}</p>
-              )}
-            </div>
-            <div>
-              <span className={labelClass}>Contact Person</span>
-              {editing ? (
-                <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{req.contact_person || '–'}</p>
-              )}
-            </div>
-            <div>
-              <span className={labelClass}>Submitter</span>
-              {editing ? (
-                <input value={form.submitter_name || ''} onChange={(e) => setForm({ ...form, submitter_name: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{form.submitter_name || '–'}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Hard Deadline (edit mode) */}
-          {editing && (
-            <div className="space-y-1">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
-                <span className="text-xs font-body text-foreground">Hard deadline or event</span>
-              </label>
-              {form.has_hard_deadline && (
-                <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
-              )}
-            </div>
-          )}
-
-          {/* Needed from Client — highlighted box */}
-          <div>
-            <span className={labelClass}>What's Needed from Client</span>
-            {editing ? (
-              <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
-            ) : (
-              <div className={`text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 ${form.what_needed_from_client ? 'bg-destructive/10 border border-destructive/20' : ''}`}>
-                {form.what_needed_from_client || '–'}
+                <div>
+                  <span className={labelClass}>Event / Promo Date</span>
+                  {editing ? (
+                    <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
+                  ) : (
+                    <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
+                  )}
+                </div>
+                <div>
+                  <span className={labelClass}>Actual Publish Date</span>
+                  {editing ? (
+                    <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+                  ) : (
+                    <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
+                  )}
+                </div>
+                <div>
+                  <span className={labelClass}>Owner</span>
+                  {editing ? (
+                    <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
+                  ) : (
+                    <p className="text-foreground">{form.owner || '–'}</p>
+                  )}
+                </div>
+                <div>
+                  <span className={labelClass}>Contact Person</span>
+                  {editing ? (
+                    <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
+                  ) : (
+                    <p className="text-foreground">{req.contact_person || '–'}</p>
+                  )}
+                </div>
+                <div>
+                  <span className={labelClass}>Submitter</span>
+                  {editing ? (
+                    <input value={form.submitter_name || ''} onChange={(e) => setForm({ ...form, submitter_name: e.target.value || null })} className={inputClass} />
+                  ) : (
+                    <p className="text-foreground">{form.submitter_name || '–'}</p>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Context + Assets */}
-          {(['context', 'assets_available'] as const).map((field) => {
-            const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials' };
-            return (
-              <div key={field}>
-                <span className={labelClass}>{labels[field]}</span>
+              {editing && (
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
+                    <span className="text-xs font-body text-foreground">Hard deadline or event</span>
+                  </label>
+                  {form.has_hard_deadline && (
+                    <input value={form.deadline_text || ''} onChange={(e) => setForm({ ...form, deadline_text: e.target.value || null })} className={inputClass} placeholder="e.g. ADV forms due 4/30" />
+                  )}
+                </div>
+              )}
+
+              <div>
+                <span className={labelClass}>What's Needed from Client</span>
                 {editing ? (
-                  <textarea value={(form as any)[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                  <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
                 ) : (
-                  <p className="text-xs font-body text-foreground whitespace-pre-wrap">{(form as any)[field] || '–'}</p>
+                  <div className={`text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 ${form.what_needed_from_client ? 'bg-destructive/10 border border-destructive/20' : ''}`}>
+                    {form.what_needed_from_client || '–'}
+                  </div>
                 )}
               </div>
-            );
-          })}
 
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            {editing ? (
-              <>
-                <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
-                <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-              </>
-            ) : (
-              <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
-            )}
-          </div>
-
-          {/* Files */}
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <span className={labelClass}>Attachments ({files.length})</span>
-              <button onClick={() => fileInputRef.current?.click()} className="text-xs font-body text-accent hover:underline">Upload</button>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.pptx,.xlsx" />
-            </div>
-            {files.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {files.map((f) => (
-                  <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block border border-border rounded overflow-hidden hover:border-accent transition-colors">
-                    {isImage(f.file_type) ? (
-                      <img src={f.file_url} alt={f.file_name} className="w-full h-24 object-cover" />
+              {(['context', 'assets_available'] as const).map((field) => {
+                const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials' };
+                return (
+                  <div key={field}>
+                    <span className={labelClass}>{labels[field]}</span>
+                    {editing ? (
+                      <textarea value={(form as any)[field] || ''} onChange={(e) => setForm({ ...form, [field]: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
                     ) : (
-                      <div className="h-24 flex items-center justify-center bg-muted">
-                        <span className="text-2xl">📄</span>
-                      </div>
+                      <p className="text-xs font-body text-foreground whitespace-pre-wrap">{(form as any)[field] || '–'}</p>
                     )}
-                    <div className="px-2 py-1 text-[10px] font-body text-muted-foreground truncate">{f.file_name}</div>
-                  </a>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Comments */}
-          <section>
-            <span className={labelClass}>Comments ({comments.length})</span>
-            <div className="space-y-2 mt-2">
-              {comments.map((c) => (
-                <div key={c.id} className="bg-muted rounded p-2">
-                  <div className="flex justify-between">
-                    <span className="text-xs font-semibold font-body text-foreground">{c.author_name}</span>
-                    <span className="text-[10px] font-body text-muted-foreground">{format(parseISO(c.created_at), 'MMM d, yyyy h:mm a')}</span>
                   </div>
-                  <p className="text-xs font-body text-foreground mt-1">{c.content}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 space-y-2">
-              <input
-                value={commentName}
-                onChange={(e) => setCommentName(e.target.value)}
-                placeholder="Your name"
-                className={inputClass}
-              />
-              <div className="flex gap-2">
-                <input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add a comment..."
-                  className={`${inputClass} flex-1`}
-                  onKeyDown={(e) => e.key === 'Enter' && handleComment()}
-                />
-                <button onClick={handleComment} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Post</button>
-              </div>
-            </div>
-          </section>
+                );
+              })}
 
-          {/* Delete — at the very bottom, small and red */}
+              <div className="flex gap-2">
+                {editing ? (
+                  <>
+                    <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
+                    <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+                  </>
+                ) : (
+                  <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Creative tab */}
+          {activeTab === 'Creative' && (
+            <CreativeTab request={request} />
+          )}
+
+          {/* Files & Comments tab */}
+          {activeTab === 'Files & Comments' && (
+            <>
+              <section>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={labelClass}>Attachments ({files.length})</span>
+                  <button onClick={() => fileInputRef.current?.click()} className="text-xs font-body text-accent hover:underline">Upload</button>
+                  <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.pptx,.xlsx" />
+                </div>
+                {files.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {files.map((f) => (
+                      <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block border border-border rounded overflow-hidden hover:border-accent transition-colors">
+                        {isImage(f.file_type) ? (
+                          <img src={f.file_url} alt={f.file_name} className="w-full h-24 object-cover" />
+                        ) : (
+                          <div className="h-24 flex items-center justify-center bg-muted">
+                            <span className="text-2xl">📄</span>
+                          </div>
+                        )}
+                        <div className="px-2 py-1 text-[10px] font-body text-muted-foreground truncate">{f.file_name}</div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <span className={labelClass}>Comments ({comments.length})</span>
+                <div className="space-y-2 mt-2">
+                  {comments.map((c) => (
+                    <div key={c.id} className="bg-muted rounded p-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs font-semibold font-body text-foreground">{c.author_name}</span>
+                        <span className="text-[10px] font-body text-muted-foreground">{format(parseISO(c.created_at), 'MMM d, yyyy h:mm a')}</span>
+                      </div>
+                      <p className="text-xs font-body text-foreground mt-1">{c.content}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 space-y-2">
+                  <input
+                    value={commentName}
+                    onChange={(e) => setCommentName(e.target.value)}
+                    placeholder="Your name"
+                    className={inputClass}
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add a comment..."
+                      className={`${inputClass} flex-1`}
+                      onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                    />
+                    <button onClick={handleComment} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Post</button>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
+
+          {/* Delete — always at bottom */}
           <div className="pt-4 border-t border-border">
             {!showDeleteConfirm ? (
               <button onClick={() => setShowDeleteConfirm(true)} className="text-[11px] font-body text-destructive hover:underline">
