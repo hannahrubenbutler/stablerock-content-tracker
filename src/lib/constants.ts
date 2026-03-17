@@ -53,8 +53,8 @@ export const STAGES = [
 
 export const PRIORITY_COLORS: Record<string, string> = {
   'High': '#C0392B',
-  'Medium': '#F48021',
-  'Low': '#27AE60',
+  'Medium': '#F1C40F',
+  'Low': '#95A5A6',
 };
 
 export const ASSET_STATUS_COLORS: Record<string, string> = {

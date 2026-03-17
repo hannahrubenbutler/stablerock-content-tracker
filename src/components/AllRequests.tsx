@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Request, useRequests, useUpdateRequest } from '@/hooks/useData';
+import { useMemo, useState, useEffect } from 'react';
+import { Request, useRequests, useUpdateRequest, useRequestMetaCounts } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO } from 'date-fns';
@@ -12,11 +12,16 @@ interface AllRequestsProps {
 export default function AllRequests({ onRequestClick, initialStageFilter }: AllRequestsProps) {
   const { data: requests = [] } = useRequests();
   const updateRequest = useUpdateRequest();
+  const { data: metaCounts } = useRequestMetaCounts();
 
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [contentFilter, setContentFilter] = useState<string>('');
   const [stageFilter, setStageFilter] = useState<string>(initialStageFilter || '');
   const [personFilter, setPersonFilter] = useState<string>('');
+
+  useEffect(() => {
+    if (initialStageFilter) setStageFilter(initialStageFilter);
+  }, [initialStageFilter]);
 
   const filtered = useMemo(() => {
     return requests.filter((r) => {
@@ -45,43 +50,24 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <select
-          value={serviceFilter}
-          onChange={(e) => setServiceFilter(e.target.value)}
-          className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground"
-        >
+        <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
           <option value="">All Service Lines</option>
           {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
         </select>
-        <select
-          value={contentFilter}
-          onChange={(e) => setContentFilter(e.target.value)}
-          className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground"
-        >
+        <select value={contentFilter} onChange={(e) => setContentFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
           <option value="">All Content Types</option>
           {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
         </select>
-        <select
-          value={stageFilter}
-          onChange={(e) => setStageFilter(e.target.value)}
-          className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground"
-        >
+        <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
           <option value="">All Stages</option>
           {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select
-          value={personFilter}
-          onChange={(e) => setPersonFilter(e.target.value)}
-          className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground"
-        >
+        <select value={personFilter} onChange={(e) => setPersonFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
           <option value="">All People</option>
           {people.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         {(serviceFilter || contentFilter || stageFilter || personFilter) && (
-          <button
-            onClick={() => { setServiceFilter(''); setContentFilter(''); setStageFilter(''); setPersonFilter(''); }}
-            className="text-xs font-body text-accent hover:underline"
-          >
+          <button onClick={() => { setServiceFilter(''); setContentFilter(''); setStageFilter(''); setPersonFilter(''); }} className="text-xs font-body text-accent hover:underline">
             Clear filters
           </button>
         )}
@@ -100,36 +86,52 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
               <th className="px-3 py-2 text-left">Stage</th>
               <th className="px-3 py-2 text-left">Needed from Client</th>
               <th className="px-3 py-2 text-left">Owner</th>
+              <th className="px-3 py-2 text-center w-16">📎 💬</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">No requests found.</td></tr>
+              <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No requests found.</td></tr>
             ) : (
-              filtered.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => onRequestClick(r)}
-                  className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                >
-                  <td className="px-3 py-2"><PriorityDot priority={r.priority} /></td>
-                  <td className="px-3 py-2"><ServiceLineBadge label={r.service_line} /></td>
-                  <td className="px-3 py-2"><ContentTypeBadge label={r.content_type} /></td>
-                  <td className="px-3 py-2 text-foreground font-medium max-w-[200px] truncate">{r.title}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.target_date ? format(parseISO(r.target_date), 'MMM d, yyyy') : '–'}</td>
-                  <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={r.stage}
-                      onChange={(e) => handleStageChange(r.id, e.target.value)}
-                      className="text-xs bg-muted border-0 rounded px-1.5 py-1 text-foreground"
-                    >
-                      {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground max-w-[150px] truncate">{r.what_needed_from_client || '–'}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{r.owner || '–'}</td>
-                </tr>
-              ))
+              filtered.map((r) => {
+                const cc = metaCounts?.commentCounts[r.id] || 0;
+                const fc = metaCounts?.fileCounts[r.id] || 0;
+                return (
+                  <tr
+                    key={r.id}
+                    onClick={() => onRequestClick(r)}
+                    className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-3 py-2"><PriorityDot priority={r.priority} /></td>
+                    <td className="px-3 py-2"><ServiceLineBadge label={r.service_line} /></td>
+                    <td className="px-3 py-2"><ContentTypeBadge label={r.content_type} /></td>
+                    <td className="px-3 py-2 text-foreground font-medium max-w-[200px] truncate">
+                      {r.title}
+                      {r.event_promo_date && (
+                        <span className="ml-2 text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
+                          📅 {format(parseISO(r.event_promo_date), 'MMM d')}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.target_date ? format(parseISO(r.target_date), 'MMM d, yyyy') : '–'}</td>
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={r.stage}
+                        onChange={(e) => handleStageChange(r.id, e.target.value)}
+                        className="text-xs bg-muted border-0 rounded px-1.5 py-1 text-foreground"
+                      >
+                        {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground max-w-[150px] truncate">{r.what_needed_from_client || '–'}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{r.owner || '–'}</td>
+                    <td className="px-3 py-2 text-center text-muted-foreground">
+                      {fc > 0 && <span className="mr-1">📎{fc}</span>}
+                      {cc > 0 && <span>💬{cc}</span>}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
