@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS } from '@/lib/constants';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -21,10 +21,23 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const req = request as any;
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({ ...request });
-  const [commentName, setCommentName] = useState('');
+  const [commentName, setCommentName] = useState(() =>
+    typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
+  );
   const [commentText, setCommentText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPublishPrompt, setShowPublishPrompt] = useState(false);
+  const [publishDate, setPublishDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Detect stage change to Published
+  const handleStageChange = (newStage: string) => {
+    setForm({ ...form, stage: newStage });
+    if (newStage === 'Published' && !form.actual_publish_date) {
+      setShowPublishPrompt(true);
+      setPublishDate(format(new Date(), 'yyyy-MM-dd'));
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -56,6 +69,15 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     } catch {
       toast.error('Failed to update');
     }
+  };
+
+  const handlePublishDateConfirm = async () => {
+    setForm({ ...form, actual_publish_date: publishDate || null });
+    setShowPublishPrompt(false);
+  };
+
+  const handlePublishDateSkip = () => {
+    setShowPublishPrompt(false);
   };
 
   const handleDelete = async () => {
@@ -113,32 +135,26 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-16 px-0 md:px-4 overflow-y-auto">
       <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-2xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <PriorityDot priority={form.priority} />
-            {!editing ? (
-              <h2 className="text-sm font-semibold font-body text-foreground truncate">{form.title}</h2>
-            ) : (
-              <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
-            )}
+        {/* Header — Title large + stage dropdown prominent */}
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              {!editing ? (
+                <h2 className="text-base font-bold font-body text-foreground">{form.title}</h2>
+              ) : (
+                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={`${inputClass} text-base font-bold`} />
+              )}
+            </div>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2 shrink-0">&times;</button>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2">&times;</button>
-        </div>
 
-        <div className="p-4 space-y-4">
-          {/* Badges */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Badges + stage dropdown row */}
+          <div className="flex items-center gap-2 flex-wrap mt-2">
+            <PriorityDot priority={form.priority} />
             {!editing ? (
               <>
                 <ServiceLineBadge label={form.service_line} />
                 <ContentTypeBadge label={form.content_type} />
-                <span className="text-xs font-body text-muted-foreground bg-muted px-2 py-0.5 rounded">{form.stage}</span>
-                {req.has_hard_deadline && req.deadline_text && (
-                  <span className="text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
-                    🔴 {req.deadline_text}
-                  </span>
-                )}
               </>
             ) : (
               <>
@@ -148,22 +164,53 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <select value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   {CONTENT_TYPES.map((ct) => <option key={ct} value={ct}>{ct}</option>)}
                 </select>
-                <select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
-                  {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-                <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
               </>
             )}
+            {/* Stage dropdown — always visible and prominent */}
+            <select
+              value={form.stage}
+              onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+              className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
+              style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+            >
+              {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            {editing && (
+              <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            )}
+            {req.has_hard_deadline && req.deadline_text && (
+              <span className="text-[10px] font-body bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded">
+                🔴 {req.deadline_text}
+              </span>
+            )}
           </div>
+        </div>
 
-          {/* Fields */}
+        {/* Publish date prompt */}
+        {showPublishPrompt && (
+          <div className="mx-4 mt-3 p-3 bg-accent/10 border border-accent rounded space-y-2">
+            <p className="text-xs font-body font-medium text-foreground">When was this published?</p>
+            <input type="date" value={publishDate} onChange={(e) => setPublishDate(e.target.value)} className={inputClass} />
+            <div className="flex gap-2">
+              <button onClick={handlePublishDateConfirm} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded">Set Date</button>
+              <button onClick={handlePublishDateSkip} className="text-xs font-body text-muted-foreground hover:text-foreground">Skip</button>
+            </div>
+          </div>
+        )}
+
+        <div className="p-4 space-y-4">
+          {/* Two-column: dates left, owner/contact right */}
           <div className="grid sm:grid-cols-2 gap-3 text-xs font-body">
             <div>
-              <span className={labelClass}>Requested Date</span>
+              <span className={labelClass}>Submitted</span>
+              <p className="text-foreground">{format(parseISO(request.created_at), 'MMM d, yyyy')}</p>
+            </div>
+            <div>
+              <span className={labelClass}>Due Date</span>
               {editing ? (
                 <div className="space-y-1">
                   <select value={form.date_mode || 'specific'} onChange={(e) => setForm({ ...form, date_mode: e.target.value })} className={inputClass}>
@@ -186,14 +233,6 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               )}
             </div>
             <div>
-              <span className={labelClass}>Actual Publish Date</span>
-              {editing ? (
-                <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-              ) : (
-                <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-              )}
-            </div>
-            <div>
               <span className={labelClass}>Event / Promo Date</span>
               {editing ? (
                 <input type="date" value={form.event_promo_date || ''} onChange={(e) => setForm({ ...form, event_promo_date: e.target.value || null })} className={inputClass} />
@@ -202,11 +241,11 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               )}
             </div>
             <div>
-              <span className={labelClass}>Contact Person</span>
+              <span className={labelClass}>Actual Publish Date</span>
               {editing ? (
-                <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
+                <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
               ) : (
-                <p className="text-foreground">{req.contact_person || '–'}</p>
+                <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
               )}
             </div>
             <div>
@@ -215,6 +254,14 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
               ) : (
                 <p className="text-foreground">{form.owner || '–'}</p>
+              )}
+            </div>
+            <div>
+              <span className={labelClass}>Contact Person</span>
+              {editing ? (
+                <input value={form.contact_person || ''} onChange={(e) => setForm({ ...form, contact_person: e.target.value || null })} className={inputClass} />
+              ) : (
+                <p className="text-foreground">{req.contact_person || '–'}</p>
               )}
             </div>
             <div>
@@ -240,9 +287,21 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
             </div>
           )}
 
-          {/* Text fields */}
-          {(['context', 'assets_available', 'what_needed_from_client'] as const).map((field) => {
-            const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials', what_needed_from_client: "What's Needed from Client" };
+          {/* Needed from Client — highlighted box */}
+          <div>
+            <span className={labelClass}>What's Needed from Client</span>
+            {editing ? (
+              <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+            ) : (
+              <div className={`text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 ${form.what_needed_from_client ? 'bg-destructive/10 border border-destructive/20' : ''}`}>
+                {form.what_needed_from_client || '–'}
+              </div>
+            )}
+          </div>
+
+          {/* Context + Assets */}
+          {(['context', 'assets_available'] as const).map((field) => {
+            const labels: Record<string, string> = { context: 'Context', assets_available: 'Assets / Shared Materials' };
             return (
               <div key={field}>
                 <span className={labelClass}>{labels[field]}</span>
@@ -263,20 +322,9 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                 <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
               </>
             ) : (
-              <>
-                <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
-                <button onClick={() => setShowDeleteConfirm(true)} className="text-xs font-body bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90">Delete</button>
-              </>
+              <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
             )}
           </div>
-
-          {showDeleteConfirm && (
-            <div className="bg-destructive/10 border border-destructive rounded p-3 flex items-center gap-3">
-              <p className="text-xs font-body text-foreground flex-1">Are you sure? This cannot be undone.</p>
-              <button onClick={handleDelete} className="text-xs font-body bg-destructive text-destructive-foreground px-3 py-1.5 rounded">Yes, Delete</button>
-              <button onClick={() => setShowDeleteConfirm(false)} className="text-xs font-body text-muted-foreground">Cancel</button>
-            </div>
-          )}
 
           {/* Files */}
           <section>
@@ -336,6 +384,21 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               </div>
             </div>
           </section>
+
+          {/* Delete — at the very bottom, small and red */}
+          <div className="pt-4 border-t border-border">
+            {!showDeleteConfirm ? (
+              <button onClick={() => setShowDeleteConfirm(true)} className="text-[11px] font-body text-destructive hover:underline">
+                Delete this request
+              </button>
+            ) : (
+              <div className="bg-destructive/10 border border-destructive rounded p-3 flex items-center gap-3">
+                <p className="text-xs font-body text-foreground flex-1">Are you sure? This cannot be undone.</p>
+                <button onClick={handleDelete} className="text-xs font-body bg-destructive text-destructive-foreground px-3 py-1.5 rounded">Yes, Delete</button>
+                <button onClick={() => setShowDeleteConfirm(false)} className="text-xs font-body text-muted-foreground">Cancel</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

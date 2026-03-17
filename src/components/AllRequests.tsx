@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Request, useRequests, useUpdateRequest, useRequestMetaCounts } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 
 interface AllRequestsProps {
   onRequestClick: (req: Request) => void;
@@ -24,12 +24,23 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
   }, [initialStageFilter]);
 
   const filtered = useMemo(() => {
-    return requests.filter((r) => {
+    const result = requests.filter((r) => {
       if (serviceFilter && r.service_line !== serviceFilter) return false;
       if (contentFilter && r.content_type !== contentFilter) return false;
       if (stageFilter && r.stage !== stageFilter) return false;
-      if (personFilter && r.owner !== personFilter && r.submitter_name !== personFilter) return false;
+      if (personFilter && r.owner !== personFilter && r.submitter_name !== personFilter && (r as any).contact_person !== personFilter) return false;
       return true;
+    });
+    // Sort by target_date ascending, flexible/null to bottom
+    return result.sort((a, b) => {
+      const aReq = a as any;
+      const bReq = b as any;
+      const aFlex = aReq.date_mode === 'flexible' || !a.target_date;
+      const bFlex = bReq.date_mode === 'flexible' || !b.target_date;
+      if (aFlex && !bFlex) return 1;
+      if (!aFlex && bFlex) return -1;
+      if (aFlex && bFlex) return 0;
+      return a.target_date! > b.target_date! ? 1 : -1;
     });
   }, [requests, serviceFilter, contentFilter, stageFilter, personFilter]);
 
@@ -38,6 +49,7 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
     requests.forEach((r) => {
       if (r.owner) set.add(r.owner);
       if (r.submitter_name) set.add(r.submitter_name);
+      if ((r as any).contact_person) set.add((r as any).contact_person);
     });
     return Array.from(set).sort();
   }, [requests]);
@@ -69,10 +81,16 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
     return <span className="text-muted-foreground">{r.target_date ? format(parseISO(r.target_date), 'MMM d, yyyy') : '–'}</span>;
   };
 
+  const isAging = (r: Request) => {
+    if (r.stage !== 'Requested') return false;
+    const days = differenceInDays(new Date(), parseISO(r.created_at));
+    return days >= 7;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filters + Count */}
+      <div className="flex flex-wrap gap-2 items-center">
         <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className="text-xs font-body bg-card border border-border rounded px-2 py-1.5 text-foreground">
           <option value="">All Service Lines</option>
           {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
@@ -94,6 +112,9 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
             Clear filters
           </button>
         )}
+        <span className="ml-auto text-xs font-body text-muted-foreground">
+          Showing {filtered.length} of {requests.length} requests
+        </span>
       </div>
 
       {/* Table */}
@@ -102,31 +123,49 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
           <thead>
             <tr className="border-b border-border text-muted-foreground">
               <th className="px-3 py-2 text-left w-6"></th>
+              <th className="px-3 py-2 text-left">Submitted</th>
               <th className="px-3 py-2 text-left">Service Line</th>
               <th className="px-3 py-2 text-left">Content Type</th>
               <th className="px-3 py-2 text-left">Title</th>
-              <th className="px-3 py-2 text-left">Target Date</th>
+              <th className="px-3 py-2 text-left">Due Date</th>
               <th className="px-3 py-2 text-left">Stage</th>
               <th className="px-3 py-2 text-left">Needed from Client</th>
+              <th className="px-3 py-2 text-left">Contact</th>
               <th className="px-3 py-2 text-left">Owner</th>
               <th className="px-3 py-2 text-center w-16">📎 💬</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
-              <tr><td colSpan={9} className="px-3 py-8 text-center text-muted-foreground">No requests found.</td></tr>
+              <tr><td colSpan={11} className="px-3 py-8 text-center text-muted-foreground">
+                No requests match your filters.
+                {(serviceFilter || contentFilter || stageFilter || personFilter) && (
+                  <button onClick={() => { setServiceFilter(''); setContentFilter(''); setStageFilter(''); setPersonFilter(''); }} className="ml-2 text-accent hover:underline">Clear filters</button>
+                )}
+              </td></tr>
             ) : (
               filtered.map((r) => {
                 const req = r as any;
                 const cc = metaCounts?.commentCounts[r.id] || 0;
                 const fc = metaCounts?.fileCounts[r.id] || 0;
+                const aging = isAging(r);
                 return (
                   <tr
                     key={r.id}
                     onClick={() => onRequestClick(r)}
                     className="border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
                   >
-                    <td className="px-3 py-2"><PriorityDot priority={r.priority} /></td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1">
+                        <PriorityDot priority={r.priority} />
+                        {aging && (
+                          <span className="inline-block w-2 h-2 rounded-full bg-accent" title="Aging: 7+ days in Requested" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                      {format(parseISO(r.created_at), 'MMM d')}
+                    </td>
                     <td className="px-3 py-2"><ServiceLineBadge label={r.service_line} /></td>
                     <td className="px-3 py-2"><ContentTypeBadge label={r.content_type} /></td>
                     <td className="px-3 py-2 text-foreground font-medium max-w-[200px] truncate">
@@ -152,7 +191,10 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
                         {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground max-w-[150px] truncate">{r.what_needed_from_client || '–'}</td>
+                    <td className="px-3 py-2 text-muted-foreground max-w-[250px]">
+                      <span className="whitespace-normal break-words">{r.what_needed_from_client || '–'}</span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{req.contact_person || '–'}</td>
                     <td className="px-3 py-2 text-muted-foreground">{r.owner || '–'}</td>
                     <td className="px-3 py-2 text-center text-muted-foreground">
                       {fc > 0 && <span className="mr-1">📎{fc}</span>}
