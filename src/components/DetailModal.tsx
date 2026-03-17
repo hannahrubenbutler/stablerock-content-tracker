@@ -212,22 +212,38 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   </select>
                 </>
               )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <select
-                    value={form.stage}
-                    onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
-                    className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
-                    style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
-                  >
-                    {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </TooltipTrigger>
-                {form.stage === 'In Simplified' && (
-                  <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
-                )}
-              </Tooltip>
-              {editing && (
+              {isAdmin ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <select
+                      value={form.stage}
+                      onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+                      className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
+                      style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                    >
+                      {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </TooltipTrigger>
+                  {form.stage === 'In Simplified' && (
+                    <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                  )}
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground inline-block"
+                      style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                    >
+                      {form.stage}
+                    </span>
+                  </TooltipTrigger>
+                  {form.stage === 'In Simplified' && (
+                    <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+              {isAdmin && editing && (
                 <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
