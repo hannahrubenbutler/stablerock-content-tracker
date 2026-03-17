@@ -1,53 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
-export type Request = {
-  id: string;
-  title: string;
-  description: string | null;
-  service_line: string;
-  content_type: string;
-  stage: string;
-  priority: string;
-  target_date: string | null;
-  event_promo_date: string | null;
-  context: string | null;
-  assets_available: string | null;
-  submitter_name: string | null;
-  owner: string | null;
-  what_needed_from_client: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Asset = {
-  id: string;
-  request_id: string | null;
-  title: string;
-  description: string | null;
-  status: string;
-  assigned_to: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type Comment = {
-  id: string;
-  request_id: string;
-  author_name: string;
-  content: string;
-  created_at: string;
-};
-
-export type FileReference = {
-  id: string;
-  request_id: string;
-  file_name: string;
-  file_url: string;
-  file_type: string | null;
-  uploaded_by: string | null;
-  created_at: string;
-};
+type Tables = Database['public']['Tables'];
+export type Request = Tables['requests']['Row'];
+type RequestInsert = Tables['requests']['Insert'];
+type RequestUpdate = Tables['requests']['Update'];
+export type Asset = Tables['assets']['Row'];
+type AssetInsert = Tables['assets']['Insert'];
+type AssetUpdate = Tables['assets']['Update'];
+export type Comment = Tables['comments']['Row'];
+type CommentInsert = Tables['comments']['Insert'];
+export type FileReference = Tables['file_references']['Row'];
 
 export function useRequests() {
   return useQuery({
@@ -58,7 +22,7 @@ export function useRequests() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Request[];
+      return data;
     },
   });
 }
@@ -66,7 +30,7 @@ export function useRequests() {
 export function useCreateRequest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (req: Omit<Request, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (req: RequestInsert) => {
       const { data, error } = await supabase.from('requests').insert(req).select().single();
       if (error) throw error;
       return data;
@@ -78,7 +42,7 @@ export function useCreateRequest() {
 export function useUpdateRequest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Request> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: RequestUpdate & { id: string }) => {
       const { data, error } = await supabase.from('requests').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
@@ -104,7 +68,7 @@ export function useAssets() {
     queryFn: async () => {
       const { data, error } = await supabase.from('assets').select('*').order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Asset[];
+      return data;
     },
   });
 }
@@ -112,7 +76,7 @@ export function useAssets() {
 export function useCreateAsset() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (asset: Omit<Asset, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (asset: AssetInsert) => {
       const { data, error } = await supabase.from('assets').insert(asset).select().single();
       if (error) throw error;
       return data;
@@ -124,7 +88,7 @@ export function useCreateAsset() {
 export function useUpdateAsset() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Asset> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: AssetUpdate & { id: string }) => {
       const { data, error } = await supabase.from('assets').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
@@ -143,7 +107,7 @@ export function useComments(requestId: string) {
         .eq('request_id', requestId)
         .order('created_at', { ascending: true });
       if (error) throw error;
-      return data as Comment[];
+      return data;
     },
     enabled: !!requestId,
   });
@@ -152,7 +116,7 @@ export function useComments(requestId: string) {
 export function useCreateComment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (comment: Omit<Comment, 'id' | 'created_at'>) => {
+    mutationFn: async (comment: CommentInsert) => {
       const { data, error } = await supabase.from('comments').insert(comment).select().single();
       if (error) throw error;
       return data;
@@ -171,7 +135,7 @@ export function useFileReferences(requestId: string) {
         .eq('request_id', requestId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as FileReference[];
+      return data;
     },
     enabled: !!requestId,
   });
