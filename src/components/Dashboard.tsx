@@ -101,10 +101,34 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
         {thisWeek.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">No content scheduled this week.</p>
+          <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
         ) : (
           <div className="space-y-1">
             {thisWeek.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => onRequestClick(r)}
+                className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
+              >
+                <PriorityDot priority={r.priority} />
+                <ServiceLineBadge label={r.service_line} />
+                <ContentTypeBadge label={r.content_type} />
+                <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+                <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Next Week */}
+      <section>
+        <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
+        {nextWeek.length === 0 ? (
+          <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
+        ) : (
+          <div className="space-y-1">
+            {nextWeek.map((r) => (
               <button
                 key={r.id}
                 onClick={() => onRequestClick(r)}
