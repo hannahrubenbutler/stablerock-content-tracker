@@ -4,7 +4,6 @@ import Dashboard from '@/components/Dashboard';
 import AllRequests from '@/components/AllRequests';
 import CalendarView from '@/components/CalendarView';
 import SubmitForm from '@/components/SubmitForm';
-import PublishedView from '@/components/PublishedView';
 import AssetsView from '@/components/AssetsView';
 import DetailModal from '@/components/DetailModal';
 import { Request, useRequests } from '@/hooks/useData';
@@ -49,9 +48,6 @@ export default function Index() {
         )}
         {activeTab === 'Submit' && (
           <SubmitForm onNavigateToRequests={() => setActiveTab('All Requests')} />
-        )}
-        {activeTab === 'Published' && (
-          <PublishedView onRequestClick={setSelectedRequest} />
         )}
         {activeTab === 'Assets' && <AssetsView />}
       </main>

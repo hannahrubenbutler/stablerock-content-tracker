@@ -1,4 +1,5 @@
-const TABS = ['Dashboard', 'All Requests', 'Calendar', 'Submit', 'Published', 'Assets'] as const;
+const NAV_TABS = ['Dashboard', 'All Requests', 'Calendar', 'Assets'] as const;
+const TABS = [...NAV_TABS, 'Submit'] as const;
 export type TabName = typeof TABS[number];
 
 interface AppHeaderProps {
@@ -27,8 +28,8 @@ export default function AppHeader({ activeTab, onTabChange, needsActionCount = 0
       <div className="h-0.5 bg-accent" />
       {/* Tab navigation — horizontal scroll on mobile */}
       <nav className="bg-card border-b border-border overflow-x-auto">
-        <div className="flex whitespace-nowrap">
-          {TABS.map((tab) => (
+        <div className="flex whitespace-nowrap items-center">
+          {NAV_TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => onTabChange(tab)}
@@ -46,6 +47,12 @@ export default function AppHeader({ activeTab, onTabChange, needsActionCount = 0
               )}
             </button>
           ))}
+          <button
+            onClick={() => onTabChange('Submit')}
+            className="ml-auto mr-2 my-1.5 px-4 py-1.5 text-sm font-medium font-body bg-accent text-accent-foreground rounded-md hover:bg-accent/90 transition-colors shrink-0"
+          >
+            + Submit
+          </button>
         </div>
       </nav>
     </header>
