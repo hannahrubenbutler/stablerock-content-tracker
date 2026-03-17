@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, addDays, startOfDay } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 
 interface DashboardProps {
   onRequestClick: (req: Request) => void;
