@@ -413,18 +413,29 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   </div>
                 )}
 
-                {/* What's Needed from Client — highlighted if has content, hidden if empty and not editing */}
-                {(form.what_needed_from_client || editing) && (
-                  <div>
-                    <span className={labelClass}>What's Needed from Client</span>
-                    {editing ? (
-                      <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
-                    ) : (
+                {/* What's Needed from Client — admin can edit, client sees read-only if populated */}
+                {isAdmin ? (
+                  (form.what_needed_from_client || editing) && (
+                    <div>
+                      <span className={labelClass}>What's Needed from Client</span>
+                      {editing ? (
+                        <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                      ) : (
+                        <div className="text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 bg-destructive/10 border border-destructive/20">
+                          {form.what_needed_from_client}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  form.what_needed_from_client && (
+                    <div>
+                      <span className={labelClass}>What's Needed from Client</span>
                       <div className="text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 bg-destructive/10 border border-destructive/20">
                         {form.what_needed_from_client}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
 
                 {(['context', 'assets_available'] as const).map((field) => {
