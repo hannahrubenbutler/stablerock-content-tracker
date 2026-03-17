@@ -96,6 +96,65 @@ export type Database = {
           },
         ]
       }
+      creatives: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          caption: string | null
+          created_at: string
+          feedback: string | null
+          graphic_file_name: string | null
+          graphic_url: string | null
+          id: string
+          platform: string
+          request_id: string
+          scheduled_datetime: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          caption?: string | null
+          created_at?: string
+          feedback?: string | null
+          graphic_file_name?: string | null
+          graphic_url?: string | null
+          id?: string
+          platform?: string
+          request_id: string
+          scheduled_datetime?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          caption?: string | null
+          created_at?: string
+          feedback?: string | null
+          graphic_file_name?: string | null
+          graphic_url?: string | null
+          id?: string
+          platform?: string
+          request_id?: string
+          scheduled_datetime?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creatives_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_references: {
         Row: {
           created_at: string
