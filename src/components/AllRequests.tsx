@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Request, useRequests, useUpdateRequest, useRequestMetaCounts, useAssets } from '@/hooks/useData';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage, STAGE_COLORS } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, Stage, STAGE_COLORS, OWNER_OPTIONS } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,6 +12,7 @@ interface AllRequestsProps {
 }
 
 export default function AllRequests({ onRequestClick, initialStageFilter }: AllRequestsProps) {
+  const { isAdmin } = useAuth();
   const { data: requests = [] } = useRequests();
   const updateRequest = useUpdateRequest();
   const { data: metaCounts } = useRequestMetaCounts();
@@ -67,7 +69,13 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
   }, [requests]);
 
   const handleStageChange = (id: string, newStage: string) => {
+    if (!isAdmin) return;
     updateRequest.mutate({ id, stage: newStage as any });
+  };
+
+  const handleOwnerChange = (id: string, newOwner: string) => {
+    if (!isAdmin) return;
+    updateRequest.mutate({ id, owner: newOwner } as any);
   };
 
   const formatDateCell = (r: any) => {
@@ -218,26 +226,57 @@ export default function AllRequests({ onRequestClick, initialStageFilter }: AllR
                       </td>
                       <td className="px-3 py-2">{formatDateCell(r)}</td>
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <select
-                              value={r.stage}
-                              onChange={(e) => handleStageChange(r.id, e.target.value)}
-                              className="text-xs bg-muted border-0 rounded px-1.5 py-1 text-foreground"
-                            >
-                              {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          </TooltipTrigger>
-                          {r.stage === 'In Simplified' && (
-                            <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
-                          )}
-                        </Tooltip>
+                        {isAdmin ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <select
+                                value={r.stage}
+                                onChange={(e) => handleStageChange(r.id, e.target.value)}
+                                className="text-xs bg-muted border-0 rounded px-1.5 py-1 text-foreground"
+                              >
+                                {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </TooltipTrigger>
+                            {r.stage === 'In Simplified' && (
+                              <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                            )}
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="text-xs font-semibold rounded px-1.5 py-1 text-accent-foreground inline-block"
+                                style={{ backgroundColor: STAGE_COLORS[r.stage] || '#6B7280' }}
+                              >
+                                {r.stage}
+                              </span>
+                            </TooltipTrigger>
+                            {r.stage === 'In Simplified' && (
+                              <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                            )}
+                          </Tooltip>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground max-w-[250px]">
                         <span className="whitespace-normal break-words">{r.what_needed_from_client || '–'}</span>
                       </td>
                       <td className="px-3 py-2 text-muted-foreground">{req.contact_person || '–'}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{r.owner || '–'}</td>
+                      <td className="px-3 py-2 text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                        {isAdmin ? (
+                          <select
+                            value={r.owner || 'Archway'}
+                            onChange={(e) => handleOwnerChange(r.id, e.target.value)}
+                            className="text-xs bg-muted border-0 rounded px-1.5 py-1 text-foreground"
+                          >
+                            {OWNER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                            {r.owner && !(OWNER_OPTIONS as readonly string[]).includes(r.owner) && (
+                              <option value={r.owner}>{r.owner}</option>
+                            )}
+                          </select>
+                        ) : (
+                          <span>{r.owner || '–'}</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-center text-muted-foreground">
                         {fc > 0 && <span className="mr-1">📎{fc}</span>}
                         {cc > 0 && <span>💬{cc}</span>}

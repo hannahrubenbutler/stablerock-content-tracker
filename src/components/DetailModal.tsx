@@ -1,7 +1,8 @@
 import { useState, useRef, useMemo } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS } from '@/lib/constants';
+import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import CreativeTab from '@/components/CreativeTab';
@@ -19,6 +20,7 @@ interface DetailModalProps {
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
 export default function DetailModal({ request, onClose }: DetailModalProps) {
+  const { isAdmin } = useAuth();
   const updateRequest = useUpdateRequest();
   const deleteRequest = useDeleteRequest();
   const { data: comments = [] } = useComments(request.id);
@@ -29,6 +31,10 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
 
   const req = request as any;
   const [editing, setEditing] = useState(false);
+  const [ownerIsOther, setOwnerIsOther] = useState(() => {
+    const current = (request as any).owner;
+    return current && !(OWNER_OPTIONS as readonly string[]).includes(current);
+  });
   const [form, setForm] = useState<any>({ ...request });
   const [commentName, setCommentName] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('sr_submitter_name') || '' : ''
@@ -206,22 +212,38 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   </select>
                 </>
               )}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <select
-                    value={form.stage}
-                    onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
-                    className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
-                    style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
-                  >
-                    {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </TooltipTrigger>
-                {form.stage === 'In Simplified' && (
-                  <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
-                )}
-              </Tooltip>
-              {editing && (
+              {isAdmin ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <select
+                      value={form.stage}
+                      onChange={(e) => editing ? handleStageChange(e.target.value) : (() => { setForm({ ...form, stage: e.target.value }); if (e.target.value === 'Published' && !form.actual_publish_date) { setShowPublishPrompt(true); setPublishDate(format(new Date(), 'yyyy-MM-dd')); } })()}
+                      className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground"
+                      style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                    >
+                      {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </TooltipTrigger>
+                  {form.stage === 'In Simplified' && (
+                    <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                  )}
+                </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="text-xs font-body font-semibold rounded px-2 py-1 text-accent-foreground inline-block"
+                      style={{ backgroundColor: STAGE_COLORS[form.stage] || '#6B7280' }}
+                    >
+                      {form.stage}
+                    </span>
+                  </TooltipTrigger>
+                  {form.stage === 'In Simplified' && (
+                    <TooltipContent>Content is being reviewed in Simplified (compliance platform) before publishing</TooltipContent>
+                  )}
+                </Tooltip>
+              )}
+              {isAdmin && editing && (
                 <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className="text-xs font-body bg-muted border border-border rounded px-2 py-1">
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
@@ -320,22 +342,47 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                       <p className="text-foreground">{form.event_promo_date ? format(parseISO(form.event_promo_date), 'MMM d, yyyy') : '–'}</p>
                     )}
                   </div>
-                  <div>
-                    <span className={labelClass}>Actual Publish Date</span>
-                    {editing ? (
-                      <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
-                    ) : (
-                      <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
-                    )}
-                  </div>
-                  <div>
-                    <span className={labelClass}>Owner</span>
-                    {editing ? (
-                      <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={inputClass} />
-                    ) : (
-                      <p className="text-foreground">{form.owner || '–'}</p>
-                    )}
-                  </div>
+                  {isAdmin && (
+                    <div>
+                      <span className={labelClass}>Actual Publish Date</span>
+                      {editing ? (
+                        <input type="date" value={form.actual_publish_date || ''} onChange={(e) => setForm({ ...form, actual_publish_date: e.target.value || null })} className={inputClass} />
+                      ) : (
+                        <p className="text-foreground">{form.actual_publish_date ? format(parseISO(form.actual_publish_date), 'MMM d, yyyy') : '–'}</p>
+                      )}
+                    </div>
+                  )}
+                  {isAdmin && (
+                    <div>
+                      <span className={labelClass}>Owner</span>
+                      {editing ? (
+                        ownerIsOther ? (
+                          <div className="flex gap-1">
+                            <input value={form.owner || ''} onChange={(e) => setForm({ ...form, owner: e.target.value || null })} className={`${inputClass} flex-1`} placeholder="Enter name" />
+                            <button onClick={() => { setOwnerIsOther(false); setForm({ ...form, owner: 'Archway' }); }} className="text-[10px] font-body text-muted-foreground hover:text-foreground">✕</button>
+                          </div>
+                        ) : (
+                          <select
+                            value={form.owner || 'Archway'}
+                            onChange={(e) => {
+                              if (e.target.value === '__other__') {
+                                setOwnerIsOther(true);
+                                setForm({ ...form, owner: '' });
+                              } else {
+                                setForm({ ...form, owner: e.target.value });
+                              }
+                            }}
+                            className={inputClass}
+                          >
+                            {OWNER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                            <option value="__other__">Other…</option>
+                          </select>
+                        )
+                      ) : (
+                        <p className="text-foreground">{form.owner || '–'}</p>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <span className={labelClass}>Contact Person</span>
                     {editing ? (
@@ -366,18 +413,29 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   </div>
                 )}
 
-                {/* What's Needed from Client — highlighted if has content, hidden if empty and not editing */}
-                {(form.what_needed_from_client || editing) && (
-                  <div>
-                    <span className={labelClass}>What's Needed from Client</span>
-                    {editing ? (
-                      <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
-                    ) : (
+                {/* What's Needed from Client — admin can edit, client sees read-only if populated */}
+                {isAdmin ? (
+                  (form.what_needed_from_client || editing) && (
+                    <div>
+                      <span className={labelClass}>What's Needed from Client</span>
+                      {editing ? (
+                        <textarea value={form.what_needed_from_client || ''} onChange={(e) => setForm({ ...form, what_needed_from_client: e.target.value || null })} className={`${inputClass} min-h-[40px]`} />
+                      ) : (
+                        <div className="text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 bg-destructive/10 border border-destructive/20">
+                          {form.what_needed_from_client}
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  form.what_needed_from_client && (
+                    <div>
+                      <span className={labelClass}>What's Needed from Client</span>
                       <div className="text-xs font-body text-foreground whitespace-pre-wrap mt-1 rounded p-2 bg-destructive/10 border border-destructive/20">
                         {form.what_needed_from_client}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )
                 )}
 
                 {(['context', 'assets_available'] as const).map((field) => {
@@ -394,16 +452,18 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   );
                 })}
 
-                <div className="flex gap-2">
-                  {editing ? (
-                    <>
-                      <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
-                      <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
-                    </>
-                  ) : (
-                    <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
-                  )}
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    {editing ? (
+                      <>
+                        <button onClick={handleSave} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Save</button>
+                        <button onClick={() => { setEditing(false); setForm({ ...request }); }} className="text-xs font-body text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setEditing(true)} className="text-xs font-body bg-secondary text-secondary-foreground px-3 py-1.5 rounded hover:opacity-90">Edit</button>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -477,30 +537,32 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               </>
             )}
 
-            {/* Delete — with confirmation dialog */}
-            <div className="pt-4 border-t border-border">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="text-[11px] font-body text-destructive hover:underline">
-                    Delete this request
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete this request?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete "{request.title}" and all associated comments, files, and creative versions. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Yes, Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            {/* Delete — admin only, with confirmation dialog */}
+            {isAdmin && (
+              <div className="pt-4 border-t border-border">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-[11px] font-body text-destructive hover:underline">
+                      Delete this request
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete this request?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete "{request.title}" and all associated comments, files, and creative versions. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Yes, Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
         </div>
       </div>

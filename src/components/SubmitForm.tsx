@@ -90,7 +90,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
           assets_available: form.assets_available || null,
           submitter_name: form.submitter_name || null,
           contact_person: form.contact_person || null,
-          owner: null,
+          owner: 'Archway',
           what_needed_from_client: null,
           date_mode: dateMode,
           date_range_end: dateMode === 'range' ? (dateRangeEnd || null) : null,

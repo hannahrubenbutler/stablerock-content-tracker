@@ -75,6 +75,15 @@ export const ASSET_STATUS_COLORS: Record<string, string> = {
   'Partial': '#2980B9',
 };
 
+export const OWNER_OPTIONS = [
+  'Archway',
+  'Kevin + Archway',
+  'Archway + J&A',
+  'Abby (self-post)',
+  'April',
+  'Kevin',
+] as const;
+
 export type ServiceLine = typeof SERVICE_LINES[number];
 export type ContentType = typeof CONTENT_TYPES[number];
 export type Stage = typeof STAGES[number];
