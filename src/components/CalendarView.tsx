@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { CONTENT_TYPE_COLORS, SERVICE_LINE_COLORS, SERVICE_LINES } from '@/lib/constants';
-import { ContentTypeBadge, ServiceLineBadge } from '@/components/Badges';
+import { ContentTypeBadge } from '@/components/Badges';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO,
-  addMonths, subMonths, isSameMonth, isToday,
+  addMonths, subMonths, isToday,
 } from 'date-fns';
 
 interface CalendarViewProps {
@@ -70,7 +70,6 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
           {dayNames.map((d) => (
             <div key={d} className="text-center text-xs font-medium font-body text-muted-foreground py-2 border-b border-border">{d}</div>
           ))}
-          {/* Padding */}
           {Array.from({ length: days.startPad }).map((_, i) => (
             <div key={`pad-${i}`} className="min-h-[80px] border-b border-r border-border bg-muted/30" />
           ))}
@@ -114,12 +113,13 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {groupedByService.map(([sl, reqs]) => (
               <div key={sl} className="bg-card border border-border rounded p-3" style={{ borderLeftWidth: 4, borderLeftColor: SERVICE_LINE_COLORS[sl] }}>
-                <h3 className="text-xs font-semibold font-body text-foreground mb-2">{sl}</h3>
-                <div className="space-y-1">
+                <h3 className="text-xs font-semibold font-body text-foreground mb-2">{sl} ({reqs.length})</h3>
+                <div className="space-y-1.5">
                   {reqs.map((r) => (
-                    <button key={r.id} onClick={() => onRequestClick(r)} className="w-full text-left text-xs font-body text-muted-foreground hover:text-foreground flex justify-between gap-2">
-                      <span className="truncate">{r.title}</span>
-                      <span className="shrink-0">{r.target_date && format(parseISO(r.target_date), 'MMM d')}</span>
+                    <button key={r.id} onClick={() => onRequestClick(r)} className="w-full text-left text-xs font-body text-muted-foreground hover:text-foreground flex items-center gap-2">
+                      <ContentTypeBadge label={r.content_type} />
+                      <span className="truncate flex-1">{r.title}</span>
+                      <span className="shrink-0 text-[10px]">{r.target_date && format(parseISO(r.target_date), 'MMM d')}</span>
                     </button>
                   ))}
                 </div>

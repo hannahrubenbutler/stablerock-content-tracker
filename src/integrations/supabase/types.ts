@@ -19,6 +19,7 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           description: string | null
+          due_date: string | null
           id: string
           request_id: string | null
           status: Database["public"]["Enums"]["asset_status"]
@@ -29,6 +30,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           request_id?: string | null
           status?: Database["public"]["Enums"]["asset_status"]
@@ -39,6 +41,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           description?: string | null
+          due_date?: string | null
           id?: string
           request_id?: string | null
           status?: Database["public"]["Enums"]["asset_status"]

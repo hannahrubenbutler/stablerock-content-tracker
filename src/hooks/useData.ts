@@ -164,3 +164,28 @@ export function useUploadFile() {
     onSuccess: (data) => qc.invalidateQueries({ queryKey: ['files', data.request_id] }),
   });
 }
+
+// Batch fetch comment and file counts for all requests
+export function useRequestMetaCounts() {
+  return useQuery({
+    queryKey: ['request-meta-counts'],
+    queryFn: async () => {
+      const [commentsRes, filesRes] = await Promise.all([
+        supabase.from('comments').select('request_id'),
+        supabase.from('file_references').select('request_id'),
+      ]);
+
+      const commentCounts: Record<string, number> = {};
+      const fileCounts: Record<string, number> = {};
+
+      (commentsRes.data || []).forEach((c) => {
+        commentCounts[c.request_id] = (commentCounts[c.request_id] || 0) + 1;
+      });
+      (filesRes.data || []).forEach((f) => {
+        fileCounts[f.request_id] = (fileCounts[f.request_id] || 0) + 1;
+      });
+
+      return { commentCounts, fileCounts };
+    },
+  });
+}

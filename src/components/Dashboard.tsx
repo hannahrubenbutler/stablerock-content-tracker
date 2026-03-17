@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, startOfWeek, endOfWeek, isWithinInterval, parseISO, startOfMonth, endOfMonth, addMonths } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, addDays, startOfDay } from 'date-fns';
 
 interface DashboardProps {
   onRequestClick: (req: Request) => void;
@@ -20,23 +20,21 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
   }, [requests]);
 
   const thisWeek = useMemo(() => {
-    const now = new Date();
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = endOfWeek(now, { weekStartsOn: 1 });
+    const today = startOfDay(new Date());
+    const end = addDays(today, 7);
     return requests.filter((r) => {
-      if (!r.target_date) return false;
+      if (!r.target_date || r.stage === 'Published') return false;
       const d = parseISO(r.target_date);
-      return isWithinInterval(d, { start, end });
+      return d >= today && d <= end;
     }).sort((a, b) => (a.target_date! > b.target_date! ? 1 : -1));
   }, [requests]);
 
   const needsClientAction = useMemo(() => {
     return requests.filter(
-      (r) => r.stage === 'Needs Info' || r.stage === 'Client Review' || (r.what_needed_from_client && r.what_needed_from_client.trim().length > 0)
+      (r) => r.what_needed_from_client && r.what_needed_from_client.trim().length > 0 && r.stage !== 'Published'
     );
   }, [requests]);
 
-  // Monthly grids: next 4 months starting from current
   const months = useMemo(() => {
     const now = new Date();
     return Array.from({ length: 4 }, (_, i) => {
@@ -133,7 +131,9 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
                       {sl.name}
                     </td>
                     {sl.counts.map((c, i) => (
-                      <td key={i} className="px-3 py-2 text-center text-foreground font-medium">{c || '–'}</td>
+                      <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40' : 'text-foreground'}`}>
+                        {c || '–'}
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -162,7 +162,9 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
                       {ct.name}
                     </td>
                     {ct.counts.map((c, i) => (
-                      <td key={i} className="px-3 py-2 text-center text-foreground font-medium">{c || '–'}</td>
+                      <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40' : 'text-foreground'}`}>
+                        {c || '–'}
+                      </td>
                     ))}
                   </tr>
                 ))}
@@ -185,10 +187,10 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
                 onClick={() => onRequestClick(r)}
                 className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
               >
-                <PriorityDot priority={r.priority} />
-                <ServiceLineBadge label={r.service_line} />
+                <ContentTypeBadge label={r.content_type} />
                 <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-                <span className="text-xs text-muted-foreground font-body flex-1 truncate">{r.what_needed_from_client || r.stage}</span>
+                <span className="text-xs text-muted-foreground font-body flex-1 truncate">{r.what_needed_from_client}</span>
+                <span className="text-xs font-body text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0">{r.stage}</span>
               </button>
             ))}
           </div>

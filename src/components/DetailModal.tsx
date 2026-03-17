@@ -85,23 +85,25 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
     }
   };
 
+  const isImage = (type: string | null) => type && type.startsWith('image/');
+
   const inputClass = "w-full text-sm font-body bg-background border border-border rounded px-2 py-1.5 text-foreground";
   const labelClass = "text-xs font-medium font-body text-muted-foreground";
 
   return (
-    <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center pt-8 md:pt-16 px-4 overflow-y-auto">
-      <div className="bg-card border border-border rounded w-full max-w-2xl shadow-lg mb-8">
+    <div className="fixed inset-0 z-50 bg-foreground/50 flex items-start justify-center md:pt-16 px-0 md:px-4 overflow-y-auto">
+      <div className="bg-card border border-border rounded-none md:rounded w-full md:max-w-2xl shadow-lg min-h-screen md:min-h-0 md:mb-8">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <PriorityDot priority={form.priority} />
             {!editing ? (
-              <h2 className="text-sm font-semibold font-body text-foreground">{form.title}</h2>
+              <h2 className="text-sm font-semibold font-body text-foreground truncate">{form.title}</h2>
             ) : (
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
             )}
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">&times;</button>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-2">&times;</button>
         </div>
 
         <div className="p-4 space-y-4">
@@ -212,13 +214,20 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
             <div className="flex items-center justify-between mb-2">
               <span className={labelClass}>Attachments ({files.length})</span>
               <button onClick={() => fileInputRef.current?.click()} className="text-xs font-body text-accent hover:underline">Upload</button>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
+              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.pptx,.xlsx" />
             </div>
             {files.length > 0 && (
-              <div className="space-y-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {files.map((f) => (
-                  <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block text-xs font-body text-accent hover:underline truncate">
-                    📎 {f.file_name}
+                  <a key={f.id} href={f.file_url} target="_blank" rel="noopener noreferrer" className="block border border-border rounded overflow-hidden hover:border-accent transition-colors">
+                    {isImage(f.file_type) ? (
+                      <img src={f.file_url} alt={f.file_name} className="w-full h-24 object-cover" />
+                    ) : (
+                      <div className="h-24 flex items-center justify-center bg-muted">
+                        <span className="text-2xl">📄</span>
+                      </div>
+                    )}
+                    <div className="px-2 py-1 text-[10px] font-body text-muted-foreground truncate">{f.file_name}</div>
                   </a>
                 ))}
               </div>
