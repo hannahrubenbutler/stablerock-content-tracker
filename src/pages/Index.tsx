@@ -5,15 +5,18 @@ import AllRequests from '@/components/AllRequests';
 import CalendarView from '@/components/CalendarView';
 import SubmitForm from '@/components/SubmitForm';
 import AssetsView from '@/components/AssetsView';
+import AdminSettings from '@/components/AdminSettings';
 import DetailModal from '@/components/DetailModal';
 import { Request, useRequests } from '@/hooks/useData';
 import { Stage } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [stageFilter, setStageFilter] = useState<Stage | null>(null);
   const { data: requests = [] } = useRequests();
+  const { isAdmin } = useAuth();
 
   const needsActionCount = useMemo(() => {
     return requests.filter(
@@ -27,6 +30,9 @@ export default function Index() {
   };
 
   const handleTabChange = (tab: TabName) => {
+    // Prevent clients from accessing admin-only tabs
+    if (tab === 'Settings' && !isAdmin) return;
+    if (tab === 'Assets' && !isAdmin) return;
     setActiveTab(tab);
     if (tab !== 'All Requests') setStageFilter(null);
   };
@@ -35,7 +41,9 @@ export default function Index() {
     <div className="min-h-screen bg-background">
       <AppHeader activeTab={activeTab} onTabChange={handleTabChange} needsActionCount={needsActionCount} />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        <h2 className="text-lg font-semibold font-body text-foreground mb-4">{activeTab}</h2>
+        {activeTab !== 'Settings' && (
+          <h2 className="text-lg font-semibold font-body text-foreground mb-4">{activeTab}</h2>
+        )}
 
         {activeTab === 'Dashboard' && (
           <Dashboard onRequestClick={setSelectedRequest} onStageFilter={handleStageFilter} />
@@ -49,7 +57,8 @@ export default function Index() {
         {activeTab === 'Submit' && (
           <SubmitForm onNavigateToRequests={() => setActiveTab('All Requests')} />
         )}
-        {activeTab === 'Assets' && <AssetsView />}
+        {activeTab === 'Assets' && isAdmin && <AssetsView />}
+        {activeTab === 'Settings' && isAdmin && <AdminSettings />}
       </main>
 
       {selectedRequest && (
