@@ -3,6 +3,8 @@ import { Request, useRequests } from '@/hooks/useData';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, STAGE_COLORS, Stage } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
+import ReadyForReview from '@/components/dashboard/ReadyForReview';
+import ScheduledQueue from '@/components/dashboard/ScheduledQueue';
 
 interface DashboardProps {
   onRequestClick: (req: Request) => void;
@@ -47,7 +49,6 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
     );
   }, [requests]);
 
-  // Group needs-client-action by contact person
   const needsClientGrouped = useMemo(() => {
     const groups: Record<string, Request[]> = {};
     needsClientAction.forEach((r) => {
@@ -55,7 +56,6 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
       if (!groups[person]) groups[person] = [];
       groups[person].push(r);
     });
-    // Sort groups by count descending
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
   }, [needsClientAction]);
 
@@ -93,31 +93,27 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
     }));
   }, [requests, months]);
 
-  const renderWeekItem = (r: Request) => {
-    const req = r as any;
-    return (
-      <button
-        key={r.id}
-        onClick={() => onRequestClick(r)}
-        className="w-full text-left bg-card border border-border rounded px-3 py-2 hover:border-accent transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <PriorityDot priority={r.priority} />
-          <ServiceLineBadge label={r.service_line} />
-          <ContentTypeBadge label={r.content_type} />
-          <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-          <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
+  const renderWeekItem = (r: Request) => (
+    <button
+      key={r.id}
+      onClick={() => onRequestClick(r)}
+      className="w-full text-left bg-card border border-border rounded px-3 py-2 hover:border-accent transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <PriorityDot priority={r.priority} />
+        <ServiceLineBadge label={r.service_line} />
+        <ContentTypeBadge label={r.content_type} />
+        <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+        <span className="text-xs text-muted-foreground font-body">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
+      </div>
+      {r.what_needed_from_client && (
+        <div className="ml-8 mt-1 text-[11px] font-body text-destructive">
+          ⚠ {r.what_needed_from_client}
         </div>
-        {r.what_needed_from_client && (
-          <div className="ml-8 mt-1 text-[11px] font-body text-destructive">
-            ⚠ {r.what_needed_from_client}
-          </div>
-        )}
-      </button>
-    );
-  };
+      )}
+    </button>
+  );
 
-  // Grid totals helper
   const computeRowTotal = (counts: number[]) => counts.reduce((a, b) => a + b, 0);
   const computeColumnTotals = (rows: { counts: number[] }[]) => {
     if (rows.length === 0) return [];
@@ -127,8 +123,18 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
   const slColumnTotals = useMemo(() => computeColumnTotals(serviceLineMonthly), [serviceLineMonthly]);
   const ctColumnTotals = useMemo(() => computeColumnTotals(contentTypeMonthly), [contentTypeMonthly]);
 
+  // Filter for scheduled & client review
+  const clientReviewRequests = useMemo(() => requests.filter((r) => r.stage === 'Client Review'), [requests]);
+  const scheduledRequests = useMemo(() => requests.filter((r) => r.stage === 'Scheduled'), [requests]);
+
   return (
     <div className="space-y-6">
+      {/* 1. Ready for Your Review — TOP */}
+      <ReadyForReview requests={clientReviewRequests} onRequestClick={onRequestClick} />
+
+      {/* 2. Scheduled Queue */}
+      <ScheduledQueue requests={scheduledRequests} onRequestClick={onRequestClick} />
+
       {/* Stage Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {STAGES.map((stage) => (
@@ -144,7 +150,7 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
         ))}
       </div>
 
-      {/* This Week */}
+      {/* 3. This Week */}
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
         {thisWeek.length === 0 ? (
@@ -154,7 +160,7 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
         )}
       </section>
 
-      {/* Next Week */}
+      {/* 4. Next Week */}
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
         {nextWeek.length === 0 ? (
@@ -164,9 +170,9 @@ export default function Dashboard({ onRequestClick, onStageFilter }: DashboardPr
         )}
       </section>
 
-      {/* Needs Client Action — moved up */}
+      {/* 5. Needs Client Action */}
       <section>
-        <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Client Action ({needsClientAction.length})</h2>
+        <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Your Attention ({needsClientAction.length})</h2>
         {needsClientGrouped.length === 0 ? (
           <p className="text-xs text-muted-foreground font-body">Nothing needs your attention right now.</p>
         ) : (
