@@ -86,7 +86,7 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
           event_promo_date: null,
           context: form.context || null,
           assets_available: form.assets_available || null,
-          submitter_name: form.submitter_name || null,
+          submitter_name: submitterName || null,
           contact_person: form.contact_person || null,
           owner: 'Archway',
           what_needed_from_client: null,
