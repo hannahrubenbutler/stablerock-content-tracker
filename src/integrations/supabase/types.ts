@@ -14,7 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          id: string
+          request_id: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          request_id?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          request_id?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      file_references: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_type: string | null
+          file_url: string
+          id: string
+          request_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_type?: string | null
+          file_url: string
+          id?: string
+          request_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          request_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "file_references_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requests: {
+        Row: {
+          assets_available: string | null
+          content_type: string
+          context: string | null
+          created_at: string
+          description: string | null
+          event_promo_date: string | null
+          id: string
+          owner: string | null
+          priority: Database["public"]["Enums"]["request_priority"]
+          service_line: string
+          stage: Database["public"]["Enums"]["request_stage"]
+          submitter_name: string | null
+          target_date: string | null
+          title: string
+          updated_at: string
+          what_needed_from_client: string | null
+        }
+        Insert: {
+          assets_available?: string | null
+          content_type: string
+          context?: string | null
+          created_at?: string
+          description?: string | null
+          event_promo_date?: string | null
+          id?: string
+          owner?: string | null
+          priority?: Database["public"]["Enums"]["request_priority"]
+          service_line: string
+          stage?: Database["public"]["Enums"]["request_stage"]
+          submitter_name?: string | null
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          what_needed_from_client?: string | null
+        }
+        Update: {
+          assets_available?: string | null
+          content_type?: string
+          context?: string | null
+          created_at?: string
+          description?: string | null
+          event_promo_date?: string | null
+          id?: string
+          owner?: string | null
+          priority?: Database["public"]["Enums"]["request_priority"]
+          service_line?: string
+          stage?: Database["public"]["Enums"]["request_stage"]
+          submitter_name?: string | null
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          what_needed_from_client?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +190,17 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      asset_status: "Waiting" | "Blocking" | "Received" | "Partial"
+      request_priority: "High" | "Medium" | "Low"
+      request_stage:
+        | "Requested"
+        | "Needs Info"
+        | "In Progress"
+        | "In Simplified"
+        | "Client Review"
+        | "Scheduled"
+        | "Published"
+        | "On Hold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +327,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      asset_status: ["Waiting", "Blocking", "Received", "Partial"],
+      request_priority: ["High", "Medium", "Low"],
+      request_stage: [
+        "Requested",
+        "Needs Info",
+        "In Progress",
+        "In Simplified",
+        "Client Review",
+        "Scheduled",
+        "Published",
+        "On Hold",
+      ],
+    },
   },
 } as const
