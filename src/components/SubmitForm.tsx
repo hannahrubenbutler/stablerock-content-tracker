@@ -101,10 +101,10 @@ export default function SubmitForm({ onNavigateToRequests }: { onNavigateToReque
 
         for (const file of selectedFiles) {
           try {
-            await uploadFile.mutateAsync({
+              await uploadFile.mutateAsync({
               requestId: newRequest.id,
               file,
-              uploadedBy: form.submitter_name || 'Unknown',
+              uploadedBy: submitterName || 'Unknown',
             });
           } catch (uploadError) {
             uploadFailureCount += 1;
