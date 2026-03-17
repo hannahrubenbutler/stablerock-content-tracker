@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useCreateRequest, useUploadFile } from '@/hooks/useData';
 import { SERVICE_LINES, CONTENT_TYPES } from '@/lib/constants';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 type DateMode = 'specific' | 'range' | 'flexible';
