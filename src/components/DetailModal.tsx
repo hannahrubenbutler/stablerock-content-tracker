@@ -20,6 +20,7 @@ interface DetailModalProps {
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
 export default function DetailModal({ request, onClose }: DetailModalProps) {
+  const { isAdmin } = useAuth();
   const updateRequest = useUpdateRequest();
   const deleteRequest = useDeleteRequest();
   const { data: comments = [] } = useComments(request.id);
