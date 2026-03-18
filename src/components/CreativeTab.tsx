@@ -3,9 +3,17 @@ import { Request, useCreatives, useCreateCreative, useUpdateCreative, useUploadC
 import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
+import { ExternalLink } from 'lucide-react';
 
 interface CreativeTabProps {
   request: Request;
+}
+
+// #10: Shared caption renderer with blue hashtags
+function renderCaption(text: string) {
+  return text.split(/(#\w+)/g).map((part, i) =>
+    part.startsWith('#') ? <span key={i} className="text-[hsl(210,70%,50%)]">{part}</span> : part
+  );
 }
 
 export default function CreativeTab({ request }: CreativeTabProps) {
@@ -20,6 +28,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const latest = creatives.length > 0 ? creatives[creatives.length - 1] : null;
   const isClientReview = request.stage === 'Client Review';
   const isScheduled = request.stage === 'Scheduled';
+  const isPublished = request.stage === 'Published';
 
   const [caption, setCaption] = useState(latest?.caption || '');
   const [platform, setPlatform] = useState(latest?.platform || 'LinkedIn');
@@ -152,18 +161,46 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const inputClass = "w-full text-sm font-body bg-background border border-border rounded px-2 py-1.5 text-foreground";
   const labelClass = "text-xs font-medium font-body text-muted-foreground";
 
-  // Render caption with hashtags highlighted
-  const renderCaption = (text: string) => {
-    return text.split(/(\#\w+)/g).map((part, i) =>
-      part.startsWith('#') ? <span key={i} className="text-[hsl(var(--chart-1))]">{part}</span> : part
-    );
-  };
+  // Preview graphic URL — use latest or current editing state
+  const previewGraphicUrl = graphicUrl || latest?.graphic_url;
+  const previewCaption = caption || latest?.caption;
 
   return (
     <div className="space-y-4">
-      {/* LinkedIn-style Preview */}
-      {graphicUrl && caption && (
-        <div className="border border-border rounded-lg overflow-hidden bg-card">
+      {/* #9: Published celebration banner */}
+      {isPublished && previewGraphicUrl && (
+        <div className="relative border border-[hsl(145,63%,42%)]/30 rounded-lg overflow-hidden">
+          <div className="absolute top-3 left-3 z-10 bg-[hsl(145,63%,42%)] text-white text-xs font-body font-bold px-3 py-1 rounded-full shadow-md">
+            ✅ Published
+          </div>
+          {/* LinkedIn preview */}
+          <div className="bg-background">
+            <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
+              <div>
+                <div className="text-sm font-semibold font-body text-foreground">Stable Rock Solutions</div>
+                <div className="text-[11px] text-muted-foreground font-body">Company · {platform}</div>
+              </div>
+            </div>
+            {previewCaption && (
+              <div className="px-4 pb-3">
+                <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(previewCaption)}</p>
+              </div>
+            )}
+            <img src={previewGraphicUrl} alt="Creative preview" className="w-full" />
+            <div className="px-4 py-2 border-t border-border flex items-center justify-around text-xs text-muted-foreground font-body">
+              <span>👍 Like</span>
+              <span>💬 Comment</span>
+              <span>🔁 Repost</span>
+              <span>📤 Send</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* #10: LinkedIn-style Preview (for non-published states) */}
+      {!isPublished && previewGraphicUrl && previewCaption && (
+        <div className="border border-border rounded-lg overflow-hidden bg-background">
           <div className="px-4 pt-4 pb-2 flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
             <div>
@@ -172,9 +209,9 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             </div>
           </div>
           <div className="px-4 pb-3">
-            <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(caption)}</p>
+            <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(previewCaption)}</p>
           </div>
-          <img src={graphicUrl} alt="Creative preview" className="w-full" />
+          <img src={previewGraphicUrl} alt="Creative preview" className="w-full" />
           {/* Faux LinkedIn engagement bar */}
           <div className="px-4 py-2 border-t border-border flex items-center justify-around text-xs text-muted-foreground font-body">
             <span>👍 Like</span>
@@ -195,7 +232,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-lg p-4">
           <p className="text-xs font-body font-semibold text-foreground">This post is ready for your review.</p>
           <p className="text-[11px] font-body text-muted-foreground">Approving as <span className="font-semibold text-foreground">{approverName}</span></p>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleApprove}
               disabled={saving}
@@ -248,7 +285,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
       )}
 
       {/* Upload & Edit section */}
-      {(!isClientReview || (latest && latest.status === 'Changes Requested')) && !isScheduled && (
+      {(!isClientReview || (latest && latest.status === 'Changes Requested')) && !isScheduled && !isPublished && (
         <div className="space-y-3">
           <div>
             <label className={labelClass}>Graphic</label>

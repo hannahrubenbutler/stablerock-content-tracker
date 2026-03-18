@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { FileImage } from 'lucide-react';
+import { FileImage, CheckCircle2 } from 'lucide-react';
 
 interface ReviewTabProps {
   onRequestClick: (req: Request) => void;
@@ -84,9 +84,12 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
     enabled: requestIds.length > 0,
   });
 
+  // #1: Only show in "Ready for Review" if they have a creative with graphic_url
   const readyForReview = reviewRequests.filter((r) => {
     const cs = getClientStatus(r.stage);
-    return cs.label === 'Ready for Review';
+    if (cs.label !== 'Ready for Review') return false;
+    const creative = creativeMap[r.id];
+    return creative && creative.graphic_url;
   });
 
   const inRevision = reviewRequests.filter((r) => {
@@ -98,9 +101,12 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
 
   return (
     <div className="space-y-8">
-      {reviewRequests.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-2xl mb-2">✅</p>
+      {reviewRequests.length === 0 || (readyForReview.length === 0 && inRevision.length === 0) ? (
+        // #15: Empty state with animation
+        <div className="text-center py-16 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[hsl(145,63%,42%)]/10 mb-4 animate-scale-in">
+            <CheckCircle2 className="w-8 h-8 text-[hsl(145,63%,42%)]" />
+          </div>
           <p className="text-sm font-body text-muted-foreground">Nothing to review right now. You're all caught up!</p>
         </div>
       ) : (
@@ -178,8 +184,33 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
 
 // Render caption with hashtags in blue
 function renderCaption(text: string) {
-  return text.split(/(\#\w+)/g).map((part, i) =>
-    part.startsWith('#') ? <span key={i} className="text-[hsl(var(--chart-1))]">{part}</span> : part
+  return text.split(/(#\w+)/g).map((part, i) =>
+    part.startsWith('#') ? <span key={i} className="text-[hsl(210,70%,50%)]">{part}</span> : part
+  );
+}
+
+// #2: Expandable caption component
+function ExpandableCaption({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const lines = text.split('\n');
+  const isLong = lines.length > 4 || text.length > 280;
+
+  if (!isLong) {
+    return <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed">{renderCaption(text)}</p>;
+  }
+
+  return (
+    <div>
+      <p className={`text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed ${!expanded ? 'line-clamp-4' : ''}`}>
+        {renderCaption(text)}
+      </p>
+      <button
+        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+        className="text-xs font-body text-muted-foreground hover:text-foreground mt-0.5"
+      >
+        {expanded ? '...see less' : '...see more'}
+      </button>
+    </div>
   );
 }
 
@@ -204,6 +235,8 @@ function ReviewCard({
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [saving, setSaving] = useState(false);
+  // #11: Fade out animation on approve
+  const [isExiting, setIsExiting] = useState(false);
 
   const approverName = profile?.full_name || profile?.email || '';
 
@@ -219,6 +252,7 @@ function ReviewCard({
         approved_at: new Date().toISOString(),
       });
       await updateRequest.mutateAsync({ id: request.id, stage: 'Scheduled' } as any);
+      setIsExiting(true);
       toast.success('Approved! Post is now scheduled.');
     } catch {
       toast.error('Failed to approve');
@@ -238,6 +272,7 @@ function ReviewCard({
         feedback: feedbackText,
       });
       await updateRequest.mutateAsync({ id: request.id, stage: 'Changes Requested' } as any);
+      setIsExiting(true);
       toast.success('Changes requested — Archway will revise this');
       setShowFeedback(false);
       setFeedbackText('');
@@ -254,7 +289,7 @@ function ReviewCard({
   const hasPreviewContent = previewImageUrl || creative?.caption;
 
   return (
-    <div className="bg-card rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+    <div className={`bg-card rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all ${isExiting ? 'animate-fade-out opacity-0' : 'animate-fade-in'}`}>
       {/* Card header */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-start justify-between gap-3 mb-2">
@@ -288,7 +323,7 @@ function ReviewCard({
           </div>
           {creative?.caption && (
             <div className="px-3 pb-2">
-              <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed line-clamp-4">{renderCaption(creative.caption)}</p>
+              <ExpandableCaption text={creative.caption} />
             </div>
           )}
           {previewImageUrl && (
@@ -312,10 +347,10 @@ function ReviewCard({
         </div>
       )}
 
-      {/* Actions */}
+      {/* Actions — #14: stack on mobile */}
       <div className="px-4 pb-4 space-y-3">
         {!showFeedback ? (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleApprove}
               disabled={saving}

@@ -1,10 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS, getClientStatus } from '@/lib/constants';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import ReadyForReview from '@/components/dashboard/ReadyForReview';
 import { TabName } from '@/components/AppHeader';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface DashboardProps {
   onRequestClick: (req: Request) => void;
@@ -78,7 +79,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
       if (!groups[key]) groups[key] = [];
       groups[key].push(r);
     });
-    // Sort: named groups first sorted by count desc, unassigned last
     const entries = Object.entries(groups);
     return entries.sort((a, b) => {
       if (a[0] === '__unassigned__') return 1;
@@ -86,6 +86,12 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
       return b[1].length - a[1].length;
     });
   }, [needsClientAction]);
+
+  // #13: Collapsible state per person
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (person: string) => {
+    setCollapsedGroups((prev) => ({ ...prev, [person]: !prev[person] }));
+  };
 
   // Monthly grids
   const months = useMemo(() => {
@@ -201,36 +207,45 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
         )}
       </section>
 
-      {/* 5. Needs Attention */}
+      {/* 5. Needs Attention — #13: collapsible per person */}
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Your Attention ({needsClientAction.length})</h2>
         {needsClientGrouped.length === 0 ? (
           <p className="text-xs text-muted-foreground font-body">Nothing needs your attention right now.</p>
         ) : (
           <div className="space-y-4">
-            {needsClientGrouped.map(([person, items]) => (
-              <div key={person}>
-                <h3 className="text-xs font-semibold font-body text-foreground mb-1 flex items-center gap-2">
-                  <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded">
-                    {person === '__unassigned__' ? 'Not yet assigned' : person}
-                  </span>
-                  <span className="text-muted-foreground font-normal">{items.length} item{items.length > 1 ? 's' : ''}</span>
-                </h3>
-                <div className="space-y-1">
-                  {items.map((r) => (
-                    <button
-                      key={r.id}
-                      onClick={() => onRequestClick(r)}
-                      className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
-                    >
-                      <ContentTypeBadge label={r.content_type} />
-                      <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-                      <span className="text-xs text-destructive font-body flex-1 truncate">{r.what_needed_from_client}</span>
-                    </button>
-                  ))}
+            {needsClientGrouped.map(([person, items]) => {
+              const isCollapsed = collapsedGroups[person];
+              return (
+                <div key={person}>
+                  <button
+                    onClick={() => toggleGroup(person)}
+                    className="text-xs font-semibold font-body text-foreground mb-1 flex items-center gap-2 hover:text-accent transition-colors"
+                  >
+                    {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded">
+                      {person === '__unassigned__' ? 'Not yet assigned' : person}
+                    </span>
+                    <span className="text-muted-foreground font-normal">{items.length} item{items.length > 1 ? 's' : ''}</span>
+                  </button>
+                  {!isCollapsed && (
+                    <div className="space-y-1 ml-5">
+                      {items.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => onRequestClick(r)}
+                          className="w-full text-left bg-card border border-border rounded px-3 py-2 flex items-center gap-3 hover:border-accent transition-colors"
+                        >
+                          <ContentTypeBadge label={r.content_type} />
+                          <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
+                          <span className="text-xs text-destructive font-body flex-1 truncate">{r.what_needed_from_client}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
