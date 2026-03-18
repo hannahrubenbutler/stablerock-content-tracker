@@ -22,10 +22,11 @@ interface DetailModalProps {
 
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
-export default function DetailModal({ request, onClose }: DetailModalProps) {
+export default function DetailModal({ request, onClose, onRequestClick }: DetailModalProps) {
   const { isAdmin, profile } = useAuth();
   const updateRequest = useUpdateRequest();
   const deleteRequest = useDeleteRequest();
+  const createRequest = useCreateRequest();
   const { data: comments = [] } = useComments(request.id);
   const createComment = useCreateComment();
   const { data: files = [] } = useFileReferences(request.id);
