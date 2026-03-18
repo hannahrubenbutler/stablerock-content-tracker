@@ -4,9 +4,9 @@ import { Settings, LogOut } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SubmitForm from '@/components/SubmitForm';
 
-const NAV_TABS = ['Dashboard', 'Requests', 'Review', 'Approved'] as const;
+const NAV_TABS = ['Dashboard', 'Content', 'Review', 'Approved'] as const;
 
-const ALL_TABS = ['Dashboard', 'Requests', 'Review', 'Approved', 'Settings'] as const;
+const ALL_TABS = ['Dashboard', 'Content', 'Review', 'Approved', 'Settings'] as const;
 export type TabName = (typeof ALL_TABS)[number];
 
 interface AppHeaderProps {
