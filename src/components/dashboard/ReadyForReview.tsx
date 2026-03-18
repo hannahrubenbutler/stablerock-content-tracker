@@ -3,6 +3,7 @@ import { ServiceLineBadge, ContentTypeBadge } from '@/components/Badges';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
+import ContentPreview from '@/components/ContentPreview';
 
 interface ReadyForReviewProps {
   requests: Request[];
@@ -55,7 +56,13 @@ export default function ReadyForReview({ requests, onRequestClick }: ReadyForRev
               >
                 {/* Thumbnail — taller */}
                 {cd?.graphic_url ? (
-                  <img src={cd.graphic_url} alt="" className="w-full h-40 object-cover" />
+                  <ContentPreview
+                    contentType={r.content_type}
+                    graphicUrl={cd.graphic_url}
+                    caption={cd.caption}
+                    title={r.title}
+                    compact
+                  />
                 ) : (
                   <div className="w-full h-40 bg-muted flex items-center justify-center text-2xl text-muted-foreground">📝</div>
                 )}
