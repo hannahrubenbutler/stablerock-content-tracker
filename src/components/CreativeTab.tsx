@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { ExternalLink } from 'lucide-react';
+import ContentPreview from '@/components/ContentPreview';
 
 interface CreativeTabProps {
   request: Request;
