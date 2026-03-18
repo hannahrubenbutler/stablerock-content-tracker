@@ -74,7 +74,7 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     const groups: Record<string, Request[]> = {};
     needsClientAction.forEach((r) => {
       const person = (r as any).contact_person || '';
-      const key = person || '__unassigned__';
+      const key = person.trim() || '__unassigned__';
       if (!groups[key]) groups[key] = [];
       groups[key].push(r);
     });

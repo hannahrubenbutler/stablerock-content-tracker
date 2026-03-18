@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Settings, LogOut } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SubmitForm from '@/components/SubmitForm';
 
 const NAV_TABS = ['Dashboard', 'Requests', 'Review', 'Approved'] as const;
@@ -90,7 +90,13 @@ export default function AppHeader({ activeTab, onTabChange, reviewCount = 0 }: A
       </header>
 
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-body">Tell us what you need</DialogTitle>
+            <DialogDescription className="font-body">
+              A content request, an upcoming event, a deadline, whatever's on your mind.
+            </DialogDescription>
+          </DialogHeader>
           <SubmitForm onSuccess={() => setSubmitOpen(false)} />
         </DialogContent>
       </Dialog>

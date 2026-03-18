@@ -15,16 +15,16 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
 
   const [serviceFilter, setServiceFilter] = useState('');
   const [contentFilter, setContentFilter] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'active' | 'all' | 'published'>('active');
 
-  // Requests tab shows: Requested, Needs Info, In Progress, In Simplified, On Hold
   const tabRequests = useMemo(() => {
-    if (showAll) return requests;
+    if (viewMode === 'all') return requests;
+    if (viewMode === 'published') return requests.filter((r) => r.stage === 'Published');
     return requests.filter((r) => {
       const cs = getClientStatus(r.stage);
       return cs.tab === 'requests';
     });
-  }, [requests, showAll]);
+  }, [requests, viewMode]);
 
   const filtered = useMemo(() => {
     return tabRequests.filter((r) => {
@@ -53,22 +53,17 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <button
-          onClick={() => setShowAll(false)}
-          className={`text-xs font-body px-3 py-1.5 rounded-full border transition-colors ${
-            !showAll ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent'
-          }`}
-        >
-          Active
-        </button>
-        <button
-          onClick={() => setShowAll(true)}
-          className={`text-xs font-body px-3 py-1.5 rounded-full border transition-colors ${
-            showAll ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent'
-          }`}
-        >
-          All
-        </button>
+        {(['active', 'all', 'published'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            className={`text-xs font-body px-3 py-1.5 rounded-full border transition-colors capitalize ${
+              viewMode === mode ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent'
+            }`}
+          >
+            {mode === 'active' ? 'Active' : mode === 'all' ? 'All' : 'Published'}
+          </button>
+        ))}
         <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)} className={inputClass}>
           <option value="">All Service Lines</option>
           {SERVICE_LINES.map((sl) => <option key={sl} value={sl}>{sl}</option>)}
