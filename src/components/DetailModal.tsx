@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 interface DetailModalProps {
   request: Request;
   onClose: () => void;
+  onRequestClick?: (req: Request) => void;
 }
 
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
