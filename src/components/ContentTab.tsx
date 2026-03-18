@@ -13,7 +13,7 @@ interface ContentTabProps {
 }
 
 export default function ContentTab({ onRequestClick }: ContentTabProps) {
-  const [viewMode, setViewMode] = useState<ContentViewMode>('list');
+  const [viewMode, setViewMode] = useState<ContentViewMode>('calendar');
   const [serviceFilter, setServiceFilter] = useState('');
   const [contentFilter, setContentFilter] = useState('');
 
