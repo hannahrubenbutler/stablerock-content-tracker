@@ -5,9 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import SubmitForm from '@/components/SubmitForm';
 import AdminAddContentForm from '@/components/AdminAddContentForm';
 
-const NAV_TABS = ['Dashboard', 'Content', 'Review', 'Approved'] as const;
+const NAV_TABS = ['Dashboard', 'Requests', 'Content Calendar', 'Review', 'Approved'] as const;
 
-const ALL_TABS = ['Dashboard', 'Content', 'Review', 'Approved', 'Settings'] as const;
+const ALL_TABS = ['Dashboard', 'Requests', 'Content Calendar', 'Review', 'Approved', 'Settings'] as const;
 export type TabName = (typeof ALL_TABS)[number];
 
 interface AppHeaderProps {
