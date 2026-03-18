@@ -208,6 +208,9 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
         )}
       </section>
 
+      {/* Calendar */}
+      <CalendarView onRequestClick={onRequestClick} />
+
       {/* 5. Needs Attention — #13: collapsible per person */}
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Your Attention ({needsClientAction.length})</h2>
