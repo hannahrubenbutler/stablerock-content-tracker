@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import AppHeader, { TabName } from '@/components/AppHeader';
 import Dashboard from '@/components/Dashboard';
 import RequestsTab from '@/components/RequestsTab';
@@ -11,11 +12,17 @@ import { getClientStatus } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useRealtimeSync } from '@/hooks/useRealtimeSync';
 
 export default function Index() {
+  const { requestId } = useParams<{ requestId?: string }>();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabName>('Dashboard');
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { data: requests = [] } = useRequests();
+
+  // Realtime sync
+  useRealtimeSync();
   const { isAdmin } = useAuth();
 
   // Get review-eligible request IDs (stage = Client Review / Creative Uploaded)

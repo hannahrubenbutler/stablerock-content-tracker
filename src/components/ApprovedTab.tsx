@@ -181,7 +181,17 @@ export default function ApprovedTab({ onRequestClick }: ApprovedTabProps) {
                             <span className="text-[11px] font-body text-muted-foreground">Published {displayDate}</span>
                           </div>
                         </button>
-                        {/* #5: View on LinkedIn link — placeholder for linkedin_post_url field */}
+                        {(r as any).linkedin_post_url && (
+                          <a
+                            href={(r as any).linkedin_post_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-body text-accent hover:underline flex items-center gap-1 shrink-0"
+                          >
+                            <ExternalLink className="w-3 h-3" /> View Post
+                          </a>
+                        )}
                       </div>
                     );
                   })}

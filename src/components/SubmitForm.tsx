@@ -62,7 +62,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { toast.error('Please give your request a title'); return; }
-    if (selectedTypes.length === 0 && !notSure) { toast.error('Please select at least one content type, or choose "Not sure"'); return; }
+    // Fix #10: If no types selected and not "Not sure", default to Other silently
+    if (selectedTypes.length === 0 && !notSure) {
+      setNotSure(true);
+    }
 
     const serviceLine = form.service_line || 'General / Stable Rock';
     const typesToCreate = notSure || selectedTypes.length === 0 ? ['Other'] : selectedTypes;
