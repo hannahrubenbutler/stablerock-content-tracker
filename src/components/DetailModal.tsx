@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
+import { Request, useUpdateRequest, useDeleteRequest, useCreateRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
