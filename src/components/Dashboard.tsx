@@ -4,6 +4,7 @@ import { SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS,
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import ReadyForReview from '@/components/dashboard/ReadyForReview';
+import CalendarView from '@/components/CalendarView';
 import { TabName } from '@/components/AppHeader';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -206,6 +207,9 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
           <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
         )}
       </section>
+
+      {/* Calendar */}
+      <CalendarView onRequestClick={onRequestClick} />
 
       {/* 5. Needs Attention — #13: collapsible per person */}
       <section>
