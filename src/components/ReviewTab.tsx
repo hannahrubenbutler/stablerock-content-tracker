@@ -242,7 +242,7 @@ function ReviewCard({
 
   const handleApprove = async () => {
     if (!approverName) { toast.error('Could not determine your name'); return; }
-    if (!creative) return;
+    if (!creative) { toast.error('No creative has been uploaded yet. Archway needs to upload the graphic and caption before this can be approved.'); return; }
     setSaving(true);
     try {
       await updateCreative.mutateAsync({
@@ -263,7 +263,7 @@ function ReviewCard({
 
   const handleRequestChanges = async () => {
     if (!feedbackText.trim()) { toast.error('Please describe what changes you need'); return; }
-    if (!creative) return;
+    if (!creative) { toast.error('No creative has been uploaded yet. Archway needs to upload the graphic and caption before this can be approved.'); return; }
     setSaving(true);
     try {
       await updateCreative.mutateAsync({
