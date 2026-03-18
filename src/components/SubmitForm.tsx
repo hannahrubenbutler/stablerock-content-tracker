@@ -108,18 +108,21 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
         for (const fileData of uploadedFileBuffers) {
           try {
             const file = new File([fileData.arrayBuffer], fileData.name, { type: fileData.type });
+            console.log('SubmitForm: uploading file', fileData.name, 'size:', file.size, 'to request:', newRequest.id);
             await uploadFile.mutateAsync({
               requestId: newRequest.id,
               file,
               uploadedBy: submitterName || 'Unknown',
             });
-          } catch (uploadError) {
+            console.log('SubmitForm: file uploaded successfully', fileData.name);
+          } catch (uploadError: any) {
             uploadFailureCount += 1;
             console.error('SubmitForm file upload failed', {
               requestId: newRequest.id,
               fileName: fileData.name,
-              uploadError,
+              error: uploadError?.message || uploadError,
             });
+            toast.error(`Failed to upload "${fileData.name}": ${uploadError?.message || 'Unknown error'}`);
           }
         }
       }
