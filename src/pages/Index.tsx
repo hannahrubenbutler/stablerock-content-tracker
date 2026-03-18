@@ -97,7 +97,7 @@ export default function Index() {
       </main>
 
       {selectedRequest && (
-        <DetailModal request={selectedRequest} onClose={handleCloseModal} />
+        <DetailModal request={selectedRequest} onClose={handleCloseModal} onRequestClick={setSelectedRequest} />
       )}
     </div>
   );
