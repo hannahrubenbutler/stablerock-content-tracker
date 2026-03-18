@@ -139,7 +139,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
 
   const handleRequestChanges = async () => {
     if (!feedbackText.trim()) { toast.error('Please describe what changes you need'); return; }
-    if (!latest) return;
+    if (!latest) { toast.error('No creative has been uploaded yet. Archway needs to upload the graphic and caption before this can be approved.'); return; }
     setSaving(true);
     try {
       await updateCreative.mutateAsync({

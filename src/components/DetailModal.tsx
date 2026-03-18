@@ -71,11 +71,28 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
   const defaultTab: ModalTab = (request.stage === 'Client Review' || request.stage === 'Scheduled') ? 'Creative' : 'Details';
   const [activeTab, setActiveTab] = useState<ModalTab>(defaultTab);
 
+  // Check if creative exists for warning
+  const { data: creativeCheck } = useQuery({
+    queryKey: ['creative-check', request.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('creatives')
+        .select('id, graphic_url')
+        .eq('request_id', request.id)
+        .not('graphic_url', 'is', null)
+        .limit(1);
+      return data && data.length > 0;
+    },
+  });
+
   const handleStageChange = async (newStage: string) => {
     setForm({ ...form, stage: newStage });
     if (newStage === 'Published' && !form.actual_publish_date) {
       setShowPublishPrompt(true);
       setPublishDate(format(new Date(), 'yyyy-MM-dd'));
+    }
+    if (newStage === 'Client Review' && !creativeCheck) {
+      toast.warning('No creative uploaded yet. Go to the Creative tab to upload graphic + caption and use "Send for Approval" instead.');
     }
     try {
       await updateRequest.mutateAsync({ id: request.id, stage: newStage } as any);
