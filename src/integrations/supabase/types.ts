@@ -236,6 +236,8 @@ export type Database = {
           flexible_date_text: string | null
           has_hard_deadline: boolean | null
           id: string
+          internal_notes: string | null
+          linkedin_post_url: string | null
           owner: string | null
           priority: Database["public"]["Enums"]["request_priority"]
           service_line: string
@@ -261,6 +263,8 @@ export type Database = {
           flexible_date_text?: string | null
           has_hard_deadline?: boolean | null
           id?: string
+          internal_notes?: string | null
+          linkedin_post_url?: string | null
           owner?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
           service_line: string
@@ -286,6 +290,8 @@ export type Database = {
           flexible_date_text?: string | null
           has_hard_deadline?: boolean | null
           id?: string
+          internal_notes?: string | null
+          linkedin_post_url?: string | null
           owner?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
           service_line?: string
