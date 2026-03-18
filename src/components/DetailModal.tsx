@@ -154,6 +154,8 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
         has_hard_deadline: form.has_hard_deadline,
         deadline_text: form.deadline_text,
         actual_publish_date: form.actual_publish_date,
+        linkedin_post_url: form.linkedin_post_url,
+        internal_notes: form.internal_notes,
       } as any);
       toast.success('Request updated');
       setEditing(false);
