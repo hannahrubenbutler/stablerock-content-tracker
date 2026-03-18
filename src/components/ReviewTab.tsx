@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { FileImage, CheckCircle2 } from 'lucide-react';
+import ContentPreview from '@/components/ContentPreview';
 
 interface ReviewTabProps {
   onRequestClick: (req: Request) => void;
