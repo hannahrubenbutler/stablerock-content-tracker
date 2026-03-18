@@ -183,37 +183,7 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
   );
 }
 
-// Render caption with hashtags in blue
-function renderCaption(text: string) {
-  return text.split(/(#\w+)/g).map((part, i) =>
-    part.startsWith('#') ? <span key={i} className="text-[hsl(210,70%,50%)]">{part}</span> : part
-  );
-}
-
-// #2: Expandable caption component
-function ExpandableCaption({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const lines = text.split('\n');
-  const isLong = lines.length > 4 || text.length > 280;
-
-  if (!isLong) {
-    return <p className="text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed">{renderCaption(text)}</p>;
-  }
-
-  return (
-    <div>
-      <p className={`text-xs font-body text-foreground whitespace-pre-wrap leading-relaxed ${!expanded ? 'line-clamp-4' : ''}`}>
-        {renderCaption(text)}
-      </p>
-      <button
-        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-        className="text-xs font-body text-muted-foreground hover:text-foreground mt-0.5"
-      >
-        {expanded ? '...see less' : '...see more'}
-      </button>
-    </div>
-  );
-}
+// renderCaption and ExpandableCaption moved to ContentPreview
 
 function ReviewCard({
   request,
