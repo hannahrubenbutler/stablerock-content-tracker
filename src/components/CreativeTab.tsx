@@ -169,54 +169,32 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           <div className="absolute top-3 left-3 z-10 bg-[hsl(145,63%,42%)] text-white text-xs font-body font-bold px-3 py-1 rounded-full shadow-md">
             ✅ Published
           </div>
-          {/* LinkedIn preview */}
-          <div className="bg-background">
-            <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
-              <div>
-                <div className="text-sm font-semibold font-body text-foreground">Stable Rock Solutions</div>
-                <div className="text-[11px] text-muted-foreground font-body">Company · {platform}</div>
-              </div>
-            </div>
-            {previewCaption && (
-              <div className="px-4 pb-3">
-                <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(previewCaption)}</p>
-              </div>
-            )}
-            <img src={previewGraphicUrl} alt="Creative preview" className="w-full" />
-            <div className="px-4 py-2 border-t border-border flex items-center justify-around text-xs text-muted-foreground font-body">
-              <span>👍 Like</span>
-              <span>💬 Comment</span>
-              <span>🔁 Repost</span>
-              <span>📤 Send</span>
-            </div>
-          </div>
+          <ContentPreview
+            contentType={request.content_type}
+            graphicUrl={previewGraphicUrl}
+            caption={previewCaption || null}
+            title={request.title}
+            scheduledDatetime={latest?.scheduled_datetime}
+            eventDate={request.event_promo_date || request.target_date}
+            platform={platform}
+          />
         </div>
       )}
 
-      {/* #10: LinkedIn-style Preview (for non-published states) */}
+      {/* Content-type-aware Preview (for non-published states) */}
       {!isPublished && previewGraphicUrl && previewCaption && (
-        <div className="border border-border rounded-lg overflow-hidden bg-background">
-          <div className="px-4 pt-4 pb-2 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
-            <div>
-              <div className="text-sm font-semibold font-body text-foreground">Stable Rock Solutions</div>
-              <div className="text-[11px] text-muted-foreground font-body">Company · {platform}</div>
-            </div>
-          </div>
-          <div className="px-4 pb-3">
-            <p className="text-sm font-body text-foreground whitespace-pre-wrap">{renderCaption(previewCaption)}</p>
-          </div>
-          <img src={previewGraphicUrl} alt="Creative preview" className="w-full" />
-          {/* Faux LinkedIn engagement bar */}
-          <div className="px-4 py-2 border-t border-border flex items-center justify-around text-xs text-muted-foreground font-body">
-            <span>👍 Like</span>
-            <span>💬 Comment</span>
-            <span>🔁 Repost</span>
-            <span>📤 Send</span>
-          </div>
+        <div>
+          <ContentPreview
+            contentType={request.content_type}
+            graphicUrl={previewGraphicUrl}
+            caption={previewCaption}
+            title={request.title}
+            scheduledDatetime={latest?.scheduled_datetime}
+            eventDate={request.event_promo_date || request.target_date}
+            platform={platform}
+          />
           {latest?.scheduled_datetime && (
-            <div className="px-4 py-2 bg-muted/50 text-xs font-body text-muted-foreground flex items-center gap-2 border-t border-border">
+            <div className="px-4 py-2 bg-muted/50 text-xs font-body text-muted-foreground flex items-center gap-2 border border-border border-t-0 rounded-b-lg">
               🕐 Scheduled: {format(parseISO(latest.scheduled_datetime), 'MMM d, yyyy h:mm a')}
             </div>
           )}
