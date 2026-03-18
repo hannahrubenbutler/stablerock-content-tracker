@@ -93,32 +93,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     setCollapsedGroups((prev) => ({ ...prev, [person]: !prev[person] }));
   };
 
-  // Monthly grids
-  const months = useMemo(() => {
-    const now = new Date();
-    return Array.from({ length: 4 }, (_, i) => {
-      const d = addMonths(startOfMonth(now), i);
-      return { start: d, end: endOfMonth(d), label: format(d, 'MMM yyyy') };
-    });
-  }, []);
-
-  const serviceLineMonthly = useMemo(() => SERVICE_LINES.map((sl) => ({
-    name: sl,
-    counts: months.map((m) => requests.filter((r) => r.service_line === sl && r.target_date && isWithinInterval(parseISO(r.target_date), { start: m.start, end: m.end })).length),
-  })), [requests, months]);
-
-  const contentTypeMonthly = useMemo(() => CONTENT_TYPES.map((ct) => ({
-    name: ct,
-    counts: months.map((m) => requests.filter((r) => r.content_type === ct && r.target_date && isWithinInterval(parseISO(r.target_date), { start: m.start, end: m.end })).length),
-  })), [requests, months]);
-
-  const computeRowTotal = (counts: number[]) => counts.reduce((a, b) => a + b, 0);
-  const computeColumnTotals = (rows: { counts: number[] }[]) => {
-    if (rows.length === 0) return [];
-    return rows[0].counts.map((_, colIdx) => rows.reduce((sum, row) => sum + row.counts[colIdx], 0));
-  };
-  const slColumnTotals = useMemo(() => computeColumnTotals(serviceLineMonthly), [serviceLineMonthly]);
-  const ctColumnTotals = useMemo(() => computeColumnTotals(contentTypeMonthly), [contentTypeMonthly]);
 
   const statCards = [
     { label: 'Requests in progress', count: inProgressCount, tab: 'Requests' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
