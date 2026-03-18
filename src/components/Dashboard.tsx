@@ -158,9 +158,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
         })}
       </div>
 
-      {/* Calendar */}
-      <CalendarView onRequestClick={onRequestClick} />
-
       {/* 2. Ready for Review */}
       <ReadyForReview requests={clientReviewRequests} onRequestClick={onRequestClick} />
 
