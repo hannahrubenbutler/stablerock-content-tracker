@@ -15,16 +15,16 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
 
   const [serviceFilter, setServiceFilter] = useState('');
   const [contentFilter, setContentFilter] = useState('');
-  const [showAll, setShowAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'active' | 'all' | 'published'>('active');
 
-  // Requests tab shows: Requested, Needs Info, In Progress, In Simplified, On Hold
   const tabRequests = useMemo(() => {
-    if (showAll) return requests;
+    if (viewMode === 'all') return requests;
+    if (viewMode === 'published') return requests.filter((r) => r.stage === 'Published');
     return requests.filter((r) => {
       const cs = getClientStatus(r.stage);
       return cs.tab === 'requests';
     });
-  }, [requests, showAll]);
+  }, [requests, viewMode]);
 
   const filtered = useMemo(() => {
     return tabRequests.filter((r) => {
