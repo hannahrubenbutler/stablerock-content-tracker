@@ -53,7 +53,7 @@ export default function ContentListView({ onRequestClick, serviceFilter, content
       if (aPri !== bPri) return aPri - bPri;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [tabRequests, serviceFilter, contentFilter, search, isAdmin]);
+  }, [tabRequests, serviceFilter, contentFilter, search]);
 
   return (
     <div className="space-y-4">

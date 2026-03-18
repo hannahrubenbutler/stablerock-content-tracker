@@ -604,9 +604,35 @@ export default function DetailModal({ request, onClose, onRequestClick }: Detail
               </>
             )}
 
-            {/* Delete — admin only, with confirmation dialog */}
+            {/* Duplicate & Delete — admin only */}
             {isAdmin && (
-              <div className="pt-4 border-t border-border">
+              <div className="pt-4 border-t border-border space-y-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const newReq = await createRequest.mutateAsync({
+                        title: `Copy of ${request.title}`,
+                        service_line: request.service_line,
+                        content_type: request.content_type,
+                        priority: request.priority,
+                        contact_person: (request as any).contact_person || null,
+                        stage: 'Requested',
+                        description: request.description || `Copy of ${request.title}`,
+                        owner: 'Archway',
+                      } as any);
+                      toast.success('Request duplicated');
+                      if (onRequestClick) {
+                        onClose();
+                        setTimeout(() => onRequestClick(newReq), 100);
+                      }
+                    } catch {
+                      toast.error('Failed to duplicate');
+                    }
+                  }}
+                  className="text-[11px] font-body text-muted-foreground hover:text-foreground hover:underline block"
+                >
+                  Duplicate this request
+                </button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button className="text-[11px] font-body text-destructive hover:underline">

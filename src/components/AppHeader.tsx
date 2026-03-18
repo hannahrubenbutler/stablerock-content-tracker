@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Settings, LogOut } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SubmitForm from '@/components/SubmitForm';
+import AdminAddContentForm from '@/components/AdminAddContentForm';
 
 const NAV_TABS = ['Dashboard', 'Content', 'Review', 'Approved'] as const;
 
@@ -18,6 +19,7 @@ interface AppHeaderProps {
 export default function AppHeader({ activeTab, onTabChange, reviewCount = 0 }: AppHeaderProps) {
   const { isAdmin, profile, signOut } = useAuth();
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [addContentOpen, setAddContentOpen] = useState(false);
 
   return (
     <>
@@ -79,12 +81,22 @@ export default function AppHeader({ activeTab, onTabChange, reviewCount = 0 }: A
                 )}
               </button>
             ))}
-            <button
-              onClick={() => setSubmitOpen(true)}
-              className="ml-auto mr-2 my-1.5 px-4 py-1.5 text-sm font-medium font-body bg-accent text-accent-foreground rounded-md hover:bg-accent/90 transition-colors shrink-0"
-            >
-              + Submit
-            </button>
+            <div className="ml-auto mr-2 my-1.5 flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => setAddContentOpen(true)}
+                  className="px-4 py-1.5 text-sm font-medium font-body border border-primary text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors shrink-0"
+                >
+                  + Add Content
+                </button>
+              )}
+              <button
+                onClick={() => setSubmitOpen(true)}
+                className="px-4 py-1.5 text-sm font-medium font-body bg-accent text-accent-foreground rounded-md hover:bg-accent/90 transition-colors shrink-0"
+              >
+                + Submit
+              </button>
+            </div>
           </div>
         </nav>
       </header>
@@ -98,6 +110,18 @@ export default function AppHeader({ activeTab, onTabChange, reviewCount = 0 }: A
             </DialogDescription>
           </DialogHeader>
           <SubmitForm onSuccess={() => setSubmitOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addContentOpen} onOpenChange={setAddContentOpen}>
+        <DialogContent className="sm:max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-body">Add Proactive Content</DialogTitle>
+            <DialogDescription className="font-body">
+              Add content that Archway is creating proactively (not client-requested).
+            </DialogDescription>
+          </DialogHeader>
+          <AdminAddContentForm onSuccess={() => setAddContentOpen(false)} />
         </DialogContent>
       </Dialog>
     </>
