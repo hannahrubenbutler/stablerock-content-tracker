@@ -169,7 +169,6 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <h2 className="text-lg font-semibold font-body text-foreground">Submit a Request</h2>
 
       {/* Title */}
       <div>
