@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppHeader, { TabName } from '@/components/AppHeader';
 import Dashboard from '@/components/Dashboard';
-import RequestsTab from '@/components/RequestsTab';
+import ContentTab from '@/components/ContentTab';
 import ReviewTab from '@/components/ReviewTab';
 import ApprovedTab from '@/components/ApprovedTab';
 import AdminSettings from '@/components/AdminSettings';
@@ -21,11 +21,9 @@ export default function Index() {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const { data: requests = [] } = useRequests();
 
-  // Realtime sync
   useRealtimeSync();
   const { isAdmin } = useAuth();
 
-  // Get review-eligible request IDs (stage = Client Review / Creative Uploaded)
   const reviewCandidateIds = useMemo(() => {
     return requests
       .filter((r) => {
@@ -35,7 +33,6 @@ export default function Index() {
       .map((r) => r.id);
   }, [requests]);
 
-  // Only count those that actually have a creative with a graphic
   const { data: reviewCount = 0 } = useQuery({
     queryKey: ['review-count', reviewCandidateIds],
     queryFn: async () => {
@@ -52,7 +49,6 @@ export default function Index() {
     enabled: reviewCandidateIds.length > 0,
   });
 
-  // Deep link: auto-open request from URL
   useEffect(() => {
     if (requestId && requests.length > 0 && !selectedRequest) {
       const found = requests.find((r) => r.id === requestId);
@@ -62,6 +58,11 @@ export default function Index() {
 
   const handleTabChange = (tab: TabName) => {
     if (tab === 'Settings' && !isAdmin) return;
+    // Map legacy tab names
+    if ((tab as string) === 'Requests') {
+      setActiveTab('Content');
+      return;
+    }
     setActiveTab(tab);
   };
 
@@ -70,32 +71,27 @@ export default function Index() {
     if (requestId) navigate('/', { replace: true });
   };
 
-  const tabLabels: Record<string, string> = {
-    'Dashboard': 'Dashboard',
-    'Requests': 'Your Requests',
-    'Review': 'Review',
-    'Approved': 'Approved',
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <AppHeader activeTab={activeTab} onTabChange={handleTabChange} reviewCount={reviewCount} />
       <main className="max-w-7xl mx-auto px-4 py-6">
-        {activeTab !== 'Settings' && activeTab !== 'Dashboard' && (
-          <h2 className="text-lg font-semibold font-body text-foreground mb-4">{tabLabels[activeTab] || activeTab}</h2>
-        )}
-
         {activeTab === 'Dashboard' && (
           <Dashboard onRequestClick={setSelectedRequest} onTabChange={handleTabChange} />
         )}
-        {activeTab === 'Requests' && (
-          <RequestsTab onRequestClick={setSelectedRequest} />
+        {activeTab === 'Content' && (
+          <ContentTab onRequestClick={setSelectedRequest} />
         )}
         {activeTab === 'Review' && (
-          <ReviewTab onRequestClick={setSelectedRequest} />
+          <>
+            <h2 className="text-lg font-semibold font-body text-foreground mb-4">Review</h2>
+            <ReviewTab onRequestClick={setSelectedRequest} />
+          </>
         )}
         {activeTab === 'Approved' && (
-          <ApprovedTab onRequestClick={setSelectedRequest} />
+          <>
+            <h2 className="text-lg font-semibold font-body text-foreground mb-4">Approved</h2>
+            <ApprovedTab onRequestClick={setSelectedRequest} />
+          </>
         )}
         {activeTab === 'Settings' && isAdmin && <AdminSettings />}
       </main>

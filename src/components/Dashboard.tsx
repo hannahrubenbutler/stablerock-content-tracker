@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
 import { getClientStatus } from '@/lib/constants';
-import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
-import ReadyForReview from '@/components/dashboard/ReadyForReview';
+import { ContentTypeBadge } from '@/components/Badges';
+import { startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { TabName } from '@/components/AppHeader';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -39,33 +38,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     }).length;
   }, [requests]);
 
-  // Ready for review items
-  const clientReviewRequests = useMemo(() => requests.filter((r) => {
-    const cs = getClientStatus(r.stage);
-    return cs.tab === 'review' && cs.label === 'Ready for Review';
-  }), [requests]);
-
-  // This / next week
-  const thisWeek = useMemo(() => {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-    return requests.filter((r) => {
-      if (!r.target_date || r.stage === 'Published') return false;
-      return isWithinInterval(parseISO(r.target_date), { start: weekStart, end: weekEnd });
-    }).sort((a, b) => a.target_date! > b.target_date! ? 1 : -1);
-  }, [requests]);
-
-  const nextWeek = useMemo(() => {
-    const now = new Date();
-    const nwStart = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
-    const nwEnd = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
-    return requests.filter((r) => {
-      if (!r.target_date || r.stage === 'Published') return false;
-      return isWithinInterval(parseISO(r.target_date), { start: nwStart, end: nwEnd });
-    }).sort((a, b) => a.target_date! > b.target_date! ? 1 : -1);
-  }, [requests]);
-
   // Needs attention — group by contact_person only
   const needsClientAction = useMemo(() => {
     return requests.filter((r) => r.what_needed_from_client?.trim() && r.stage !== 'Published');
@@ -87,49 +59,17 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
     });
   }, [needsClientAction]);
 
-  // #13: Collapsible state per person
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const toggleGroup = (person: string) => {
     setCollapsedGroups((prev) => ({ ...prev, [person]: !prev[person] }));
   };
 
-
   const statCards = [
-    { label: 'Requests in progress', count: inProgressCount, tab: 'Requests' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
+    { label: 'Requests in progress', count: inProgressCount, tab: 'Content' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
     { label: reviewCount > 0 ? 'Ready for review ⚡' : 'Ready for review', count: reviewCount, tab: 'Review' as TabName, borderColor: 'hsl(28, 80%, 52%)', highlight: reviewCount > 0 },
     { label: 'Scheduled', count: scheduledCount, tab: 'Approved' as TabName, borderColor: 'hsl(168, 76%, 42%)' },
     { label: 'Published this month', count: publishedThisMonth, tab: null, borderColor: 'hsl(145, 63%, 42%)' },
   ];
-
-  const renderWeekItem = (r: Request) => {
-    const cs = getClientStatus(r.stage);
-    return (
-      <button
-        key={r.id}
-        onClick={() => onRequestClick(r)}
-        className="w-full text-left bg-card border border-border rounded px-3 py-2 hover:border-accent transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <PriorityDot priority={r.priority} />
-          <ServiceLineBadge label={r.service_line} />
-          <ContentTypeBadge label={r.content_type} />
-          <span className="text-sm font-body text-foreground flex-1 truncate">{r.title}</span>
-          <span
-            className="text-[10px] font-body font-semibold px-2 py-0.5 rounded-full text-white shrink-0"
-            style={{ backgroundColor: cs.color }}
-          >
-            {cs.label}
-          </span>
-          <span className="text-xs text-muted-foreground font-body shrink-0">{r.target_date && format(parseISO(r.target_date), 'EEE MMM d')}</span>
-        </div>
-        {r.what_needed_from_client && (
-          <div className="ml-8 mt-1 text-[11px] font-body text-destructive">
-            ⚠ {r.what_needed_from_client}
-          </div>
-        )}
-      </button>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -158,31 +98,7 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
         })}
       </div>
 
-      {/* 2. Ready for Review */}
-      <ReadyForReview requests={clientReviewRequests} onRequestClick={onRequestClick} />
-
-      {/* 3. This Week / Next Week — side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <section>
-          <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
-          {thisWeek.length === 0 ? (
-            <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
-          ) : (
-            <div className="space-y-1">{thisWeek.map(renderWeekItem)}</div>
-          )}
-        </section>
-
-        <section>
-          <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
-          {nextWeek.length === 0 ? (
-            <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
-          ) : (
-            <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
-          )}
-        </section>
-      </div>
-
-      {/* 5. Needs Attention — #13: collapsible per person */}
+      {/* 2. Needs Attention — collapsible per person */}
       <section>
         <h2 className="text-sm font-semibold font-body text-foreground mb-2">⚠️ Needs Your Attention ({needsClientAction.length})</h2>
         {needsClientGrouped.length === 0 ? (
@@ -224,7 +140,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
           </div>
         )}
       </section>
-
     </div>
   );
 }
