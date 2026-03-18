@@ -160,9 +160,6 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
 
   return (
     <div className="space-y-6">
-      {/* Calendar */}
-      <CalendarView onRequestClick={onRequestClick} />
-
       {/* 1. Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {statCards.map((card) => {
@@ -210,6 +207,9 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
           <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
         )}
       </section>
+
+      {/* Calendar */}
+      <CalendarView onRequestClick={onRequestClick} />
 
       {/* 5. Needs Attention — #13: collapsible per person */}
       <section>
