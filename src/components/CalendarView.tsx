@@ -267,6 +267,83 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
           </div>
         </section>
       )}
+
+      {/* Monthly Grids */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <section>
+          <h2 className="text-sm font-semibold font-body text-foreground mb-2">By Service Line</h2>
+          <div className="bg-card border border-border rounded overflow-x-auto">
+            <table className="w-full text-xs font-body">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-3 py-2 text-muted-foreground">Service Line</th>
+                  {months.map((m) => <th key={m.label} className="px-3 py-2 text-center text-muted-foreground">{m.label}</th>)}
+                  <th className="px-3 py-2 text-center text-muted-foreground font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {serviceLineMonthly.map((sl) => {
+                  const total = computeRowTotal(sl.counts);
+                  return (
+                    <tr key={sl.name} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-3 py-2">
+                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: SERVICE_LINE_COLORS[sl.name] }} />
+                        {sl.name}
+                      </td>
+                      {sl.counts.map((c, i) => (
+                        <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40 bg-destructive/5' : 'text-foreground'}`}>{c || '–'}</td>
+                      ))}
+                      <td className="px-3 py-2 text-center font-bold text-foreground">{total}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t-2 border-border bg-muted/50">
+                  <td className="px-3 py-2 font-bold text-foreground">Total</td>
+                  {slColumnTotals.map((t, i) => <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>)}
+                  <td className="px-3 py-2 text-center font-bold text-foreground">{slColumnTotals.reduce((a, b) => a + b, 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold font-body text-foreground mb-2">By Content Type</h2>
+          <div className="bg-card border border-border rounded overflow-x-auto">
+            <table className="w-full text-xs font-body">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left px-3 py-2 text-muted-foreground">Content Type</th>
+                  {months.map((m) => <th key={m.label} className="px-3 py-2 text-center text-muted-foreground">{m.label}</th>)}
+                  <th className="px-3 py-2 text-center text-muted-foreground font-semibold">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contentTypeMonthly.map((ct) => {
+                  const total = computeRowTotal(ct.counts);
+                  return (
+                    <tr key={ct.name} className="border-b border-border last:border-0 hover:bg-muted/50">
+                      <td className="px-3 py-2">
+                        <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: CONTENT_TYPE_COLORS[ct.name] }} />
+                        {ct.name}
+                      </td>
+                      {ct.counts.map((c, i) => (
+                        <td key={i} className={`px-3 py-2 text-center font-medium ${c === 0 ? 'text-muted-foreground/40 bg-destructive/5' : 'text-foreground'}`}>{c || '–'}</td>
+                      ))}
+                      <td className="px-3 py-2 text-center font-bold text-foreground">{total}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-t-2 border-border bg-muted/50">
+                  <td className="px-3 py-2 font-bold text-foreground">Total</td>
+                  {ctColumnTotals.map((t, i) => <td key={i} className="px-3 py-2 text-center font-bold text-foreground">{t}</td>)}
+                  <td className="px-3 py-2 text-center font-bold text-foreground">{ctColumnTotals.reduce((a, b) => a + b, 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
