@@ -32,7 +32,11 @@ export default function RequestsTab({ onRequestClick }: RequestsTabProps) {
       if (contentFilter && r.content_type !== contentFilter) return false;
       return true;
     }).sort((a, b) => {
-      // Primary sort: due date (soonest first), no-date items at bottom
+      if (isAdmin) {
+        // Admin: sort by received date (newest first)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      // Client: sort by due date (soonest first), no-date items at bottom
       const aDate = a.target_date;
       const bDate = b.target_date;
       if (aDate && !bDate) return -1;
