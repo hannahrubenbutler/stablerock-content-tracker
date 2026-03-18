@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
+import { Request, useUpdateRequest, useDeleteRequest, useCreateRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
@@ -17,14 +17,16 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 interface DetailModalProps {
   request: Request;
   onClose: () => void;
+  onRequestClick?: (req: Request) => void;
 }
 
 type ModalTab = 'Details' | 'Creative' | 'Files & Comments';
 
-export default function DetailModal({ request, onClose }: DetailModalProps) {
+export default function DetailModal({ request, onClose, onRequestClick }: DetailModalProps) {
   const { isAdmin, profile } = useAuth();
   const updateRequest = useUpdateRequest();
   const deleteRequest = useDeleteRequest();
+  const createRequest = useCreateRequest();
   const { data: comments = [] } = useComments(request.id);
   const createComment = useCreateComment();
   const { data: files = [] } = useFileReferences(request.id);
@@ -602,9 +604,35 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
               </>
             )}
 
-            {/* Delete — admin only, with confirmation dialog */}
+            {/* Duplicate & Delete — admin only */}
             {isAdmin && (
-              <div className="pt-4 border-t border-border">
+              <div className="pt-4 border-t border-border space-y-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      const newReq = await createRequest.mutateAsync({
+                        title: `Copy of ${request.title}`,
+                        service_line: request.service_line,
+                        content_type: request.content_type,
+                        priority: request.priority,
+                        contact_person: (request as any).contact_person || null,
+                        stage: 'Requested',
+                        description: request.description || `Copy of ${request.title}`,
+                        owner: 'Archway',
+                      } as any);
+                      toast.success('Request duplicated');
+                      if (onRequestClick) {
+                        onClose();
+                        setTimeout(() => onRequestClick(newReq), 100);
+                      }
+                    } catch {
+                      toast.error('Failed to duplicate');
+                    }
+                  }}
+                  className="text-[11px] font-body text-muted-foreground hover:text-foreground hover:underline block"
+                >
+                  Duplicate this request
+                </button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <button className="text-[11px] font-body text-destructive hover:underline">

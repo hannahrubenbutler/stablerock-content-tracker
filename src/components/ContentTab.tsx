@@ -13,7 +13,7 @@ interface ContentTabProps {
 }
 
 export default function ContentTab({ onRequestClick }: ContentTabProps) {
-  const [viewMode, setViewMode] = useState<ContentViewMode>('list');
+  const [viewMode, setViewMode] = useState<ContentViewMode>('calendar');
   const [serviceFilter, setServiceFilter] = useState('');
   const [contentFilter, setContentFilter] = useState('');
 
@@ -27,6 +27,7 @@ export default function ContentTab({ onRequestClick }: ContentTabProps) {
 
   return (
     <div className="space-y-4">
+      <h2 className="text-lg font-semibold font-body text-foreground">Content</h2>
       {/* View toggle + shared filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="flex bg-muted rounded-full p-0.5">

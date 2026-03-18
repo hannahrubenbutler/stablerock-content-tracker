@@ -40,21 +40,20 @@ export default function ContentListView({ onRequestClick, serviceFilter, content
       }
       return true;
     }).sort((a, b) => {
-      if (isAdmin) {
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      }
+      // Sort by due date soonest first, no-date items at bottom
       const aDate = a.target_date;
       const bDate = b.target_date;
       if (aDate && !bDate) return -1;
       if (!aDate && bDate) return 1;
       if (aDate && bDate && aDate !== bDate) return aDate > bDate ? 1 : -1;
+      // Tiebreaker: priority
       const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
       const aPri = priorityOrder[a.priority] ?? 1;
       const bPri = priorityOrder[b.priority] ?? 1;
       if (aPri !== bPri) return aPri - bPri;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [tabRequests, serviceFilter, contentFilter, search, isAdmin]);
+  }, [tabRequests, serviceFilter, contentFilter, search]);
 
   return (
     <div className="space-y-4">
