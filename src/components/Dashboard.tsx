@@ -4,6 +4,7 @@ import { SERVICE_LINES, CONTENT_TYPES, SERVICE_LINE_COLORS, CONTENT_TYPE_COLORS,
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { format, parseISO, startOfMonth, endOfMonth, addMonths, isWithinInterval, startOfWeek, endOfWeek, addWeeks } from 'date-fns';
 import ReadyForReview from '@/components/dashboard/ReadyForReview';
+import CalendarView from '@/components/CalendarView';
 import { TabName } from '@/components/AppHeader';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
