@@ -34,19 +34,25 @@ export default function ReadyForReview({ requests, onRequestClick }: ReadyForRev
     enabled: requestIds.length > 0,
   });
 
+  // Fix #8: Only show requests that actually have a creative with a graphic
+  const filteredRequests = requests.filter((r) => {
+    const cd = creativeData[r.id];
+    return cd?.graphic_url;
+  });
+
   return (
     <section>
       <h2 className="text-sm font-semibold font-body text-foreground mb-2 flex items-center gap-2">
         👀 Ready for Your Review
-        {requests.length > 0 && (
-          <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full font-bold">{requests.length}</span>
+        {filteredRequests.length > 0 && (
+          <span className="bg-accent text-accent-foreground text-xs px-2 py-0.5 rounded-full font-bold">{filteredRequests.length}</span>
         )}
       </h2>
-      {requests.length === 0 ? (
+      {filteredRequests.length === 0 ? (
         <p className="text-xs text-muted-foreground font-body">No posts waiting for review right now.</p>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {requests.map((r) => {
+          {filteredRequests.map((r) => {
             const cd = creativeData[r.id];
             return (
               <button
