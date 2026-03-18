@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Settings, LogOut } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SubmitForm from '@/components/SubmitForm';
 
 const NAV_TABS = ['Dashboard', 'Requests', 'Review', 'Approved'] as const;
