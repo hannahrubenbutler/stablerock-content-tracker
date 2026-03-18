@@ -21,11 +21,9 @@ export const CONTENT_TYPES = [
   'Blog Post',
   'SEO Article',
   'Email Campaign',
-  'Email Nurture',
   'Newsletter',
   'Event Promotion',
   'Landing Page',
-  'Website Update',
 ] as const;
 
 export const CONTENT_TYPE_COLORS: Record<string, string> = {
