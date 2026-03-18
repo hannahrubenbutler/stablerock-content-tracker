@@ -52,9 +52,22 @@ export default function Index() {
     enabled: reviewCandidateIds.length > 0,
   });
 
+  // Deep link: auto-open request from URL
+  useEffect(() => {
+    if (requestId && requests.length > 0 && !selectedRequest) {
+      const found = requests.find((r) => r.id === requestId);
+      if (found) setSelectedRequest(found);
+    }
+  }, [requestId, requests, selectedRequest]);
+
   const handleTabChange = (tab: TabName) => {
     if (tab === 'Settings' && !isAdmin) return;
     setActiveTab(tab);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedRequest(null);
+    if (requestId) navigate('/', { replace: true });
   };
 
   const tabLabels: Record<string, string> = {
