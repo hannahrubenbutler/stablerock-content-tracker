@@ -10,12 +10,7 @@ interface CreativeTabProps {
   request: Request;
 }
 
-// #10: Shared caption renderer with blue hashtags
-function renderCaption(text: string) {
-  return text.split(/(#\w+)/g).map((part, i) =>
-    part.startsWith('#') ? <span key={i} className="text-[hsl(210,70%,50%)]">{part}</span> : part
-  );
-}
+// renderCaption moved to ContentPreview
 
 export default function CreativeTab({ request }: CreativeTabProps) {
   const { data: creatives = [] } = useCreatives(request.id);
