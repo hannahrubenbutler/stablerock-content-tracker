@@ -1,5 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { Request, useUpdateRequest, useDeleteRequest, useComments, useCreateComment, useFileReferences, useUploadFile, useAssets } from '@/hooks/useData';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { ServiceLineBadge, ContentTypeBadge, PriorityDot } from '@/components/Badges';
 import { STAGES, SERVICE_LINES, CONTENT_TYPES, STAGE_COLORS, OWNER_OPTIONS, getClientStatus } from '@/lib/constants';
 import { useAuth } from '@/hooks/useAuth';
