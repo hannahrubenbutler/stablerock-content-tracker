@@ -546,36 +546,16 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                   )}
                 </section>
 
-                <section>
-                  <span className={labelClass}>Comments ({comments.length})</span>
-                  <div className="space-y-2 mt-2">
-                    {comments.map((c) => {
-                      const isNew = lastViewed && new Date(c.created_at) > lastViewed;
-                      return (
-                        <div key={c.id} className={`bg-muted rounded p-2 ${isNew ? 'ring-2 ring-accent/40' : ''}`}>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-semibold font-body text-foreground">{c.author_name}</span>
-                            <span className="text-[10px] font-body text-muted-foreground">{format(parseISO(c.created_at), 'MMM d, yyyy h:mm a')}</span>
-                          </div>
-                          <p className="text-xs font-body text-foreground mt-1">{c.content}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    <p className="text-xs font-body text-muted-foreground">Posting as <span className="font-semibold text-foreground">{commentName}</span></p>
-                    <div className="flex gap-2">
-                      <input
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment..."
-                        className={`${inputClass} flex-1`}
-                        onKeyDown={(e) => e.key === 'Enter' && handleComment()}
-                      />
-                      <button onClick={handleComment} className="text-xs font-body bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90">Post</button>
-                    </div>
-                  </div>
-                </section>
+                <AdminCommentSection
+                  comments={comments}
+                  lastViewed={lastViewed}
+                  commentName={commentName}
+                  commentText={commentText}
+                  setCommentText={setCommentText}
+                  handleComment={handleComment}
+                  inputClass={inputClass}
+                  labelClass={labelClass}
+                />
               </>
             )}
 
