@@ -282,31 +282,18 @@ function ReviewCard({
         </div>
       </div>
 
-      {/* LinkedIn-style preview */}
+      {/* Content-type-aware preview */}
       {hasPreviewContent ? (
-        <div className="mx-4 mb-3 border border-border rounded-lg overflow-hidden bg-background">
-          <div className="px-3 pt-2.5 pb-1.5 flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">SR</div>
-            <div>
-              <div className="text-xs font-semibold font-body text-foreground">Stable Rock Solutions</div>
-              <div className="text-[10px] text-muted-foreground font-body">Company · {creative?.platform || 'LinkedIn'}</div>
-            </div>
-          </div>
-          {creative?.caption && (
-            <div className="px-3 pb-2">
-              <ExpandableCaption text={creative.caption} />
-            </div>
-          )}
-          {previewImageUrl && (
-            <img src={previewImageUrl} alt="" className="w-full" />
-          )}
-          {/* Faux engagement bar */}
-          <div className="px-3 py-1.5 border-t border-border flex items-center justify-around text-[10px] text-muted-foreground font-body">
-            <span>👍 Like</span>
-            <span>💬 Comment</span>
-            <span>🔁 Repost</span>
-            <span>📤 Send</span>
-          </div>
+        <div className="mx-4 mb-3">
+          <ContentPreview
+            contentType={request.content_type}
+            graphicUrl={previewImageUrl}
+            caption={creative?.caption || null}
+            title={request.title}
+            scheduledDatetime={creative?.scheduled_datetime}
+            eventDate={request.event_promo_date || request.target_date}
+            platform={creative?.platform || 'LinkedIn'}
+          />
         </div>
       ) : (
         <div className="mx-4 mb-3 py-6 border border-dashed border-border rounded-lg bg-muted/50 flex flex-col items-center justify-center gap-1.5">
