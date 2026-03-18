@@ -185,31 +185,32 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
         })}
       </div>
 
+      {/* Calendar */}
+      <CalendarView onRequestClick={onRequestClick} />
+
       {/* 2. Ready for Review */}
       <ReadyForReview requests={clientReviewRequests} onRequestClick={onRequestClick} />
 
-      {/* 3. This Week */}
-      <section>
-        <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
-        {thisWeek.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
-        ) : (
-          <div className="space-y-1">{thisWeek.map(renderWeekItem)}</div>
-        )}
-      </section>
+      {/* 3. This Week / Next Week — side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section>
+          <h2 className="text-sm font-semibold font-body text-foreground mb-2">📅 This Week</h2>
+          {thisWeek.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-body">Nothing scheduled this week.</p>
+          ) : (
+            <div className="space-y-1">{thisWeek.map(renderWeekItem)}</div>
+          )}
+        </section>
 
-      {/* 4. Next Week */}
-      <section>
-        <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
-        {nextWeek.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
-        ) : (
-          <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
-        )}
-      </section>
-
-      {/* Calendar */}
-      <CalendarView onRequestClick={onRequestClick} />
+        <section>
+          <h2 className="text-sm font-semibold font-body text-foreground mb-2">📋 Next Week</h2>
+          {nextWeek.length === 0 ? (
+            <p className="text-xs text-muted-foreground font-body">Nothing scheduled next week.</p>
+          ) : (
+            <div className="space-y-1">{nextWeek.map(renderWeekItem)}</div>
+          )}
+        </section>
+      </div>
 
       {/* 5. Needs Attention — #13: collapsible per person */}
       <section>
