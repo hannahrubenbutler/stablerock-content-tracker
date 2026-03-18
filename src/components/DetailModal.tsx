@@ -504,8 +504,32 @@ export default function DetailModal({ request, onClose }: DetailModalProps) {
                       </div>
                     </div>
 
+                    {/* LinkedIn Post URL */}
+                    <div className="col-span-2">
+                      <span className={labelClass}>LinkedIn Post URL</span>
+                      {editing ? (
+                        <input value={form.linkedin_post_url || ''} onChange={(e) => setForm({ ...form, linkedin_post_url: e.target.value || null })} className={inputClass} placeholder="https://www.linkedin.com/feed/update/..." />
+                      ) : (
+                        form.linkedin_post_url ? (
+                          <a href={form.linkedin_post_url} target="_blank" rel="noopener noreferrer" className="text-xs font-body text-accent hover:underline break-all">{form.linkedin_post_url}</a>
+                        ) : (
+                          <p className="text-foreground">–</p>
+                        )
+                      )}
+                    </div>
+
+                    {/* Internal Notes */}
+                    <div className="col-span-2">
+                      <span className={labelClass}>Internal Notes</span>
+                      {editing ? (
+                        <textarea value={form.internal_notes || ''} onChange={(e) => setForm({ ...form, internal_notes: e.target.value || null })} className={`${inputClass} min-h-[60px]`} placeholder="Internal notes visible only to Archway team..." />
+                      ) : (
+                        <p className="text-xs font-body text-foreground whitespace-pre-wrap">{form.internal_notes || '–'}</p>
+                      )}
+                    </div>
+
                     {editing && (
-                      <div className="space-y-1">
+                      <div className="space-y-1 col-span-2">
                         <label className="flex items-center gap-2">
                           <input type="checkbox" checked={form.has_hard_deadline || false} onChange={(e) => setForm({ ...form, has_hard_deadline: e.target.checked })} className="rounded border-border" />
                           <span className="text-xs font-body text-foreground">Hard deadline or event</span>
