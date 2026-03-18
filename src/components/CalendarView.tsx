@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
-import { CONTENT_TYPE_COLORS, CONTENT_TYPE_ABBR, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS, getClientStatus } from '@/lib/constants';
+import { CONTENT_TYPE_COLORS, CONTENT_TYPE_ABBR, CONTENT_TYPES, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS, getClientStatus } from '@/lib/constants';
 import { ContentTypeBadge } from '@/components/Badges';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO,
-  addMonths, subMonths, isToday,
+  addMonths, subMonths, isToday, isWithinInterval,
 } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
