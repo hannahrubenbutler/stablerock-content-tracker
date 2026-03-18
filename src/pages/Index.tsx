@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AppHeader, { TabName } from '@/components/AppHeader';
 import Dashboard from '@/components/Dashboard';
-import ContentTab from '@/components/ContentTab';
+import RequestsTab from '@/components/RequestsTab';
+import PlanningTab from '@/components/PlanningTab';
 import ReviewTab from '@/components/ReviewTab';
 import ApprovedTab from '@/components/ApprovedTab';
 import AdminSettings from '@/components/AdminSettings';
@@ -58,11 +59,6 @@ export default function Index() {
 
   const handleTabChange = (tab: TabName) => {
     if (tab === 'Settings' && !isAdmin) return;
-    // Map legacy tab names
-    if ((tab as string) === 'Requests') {
-      setActiveTab('Content');
-      return;
-    }
     setActiveTab(tab);
   };
 
@@ -78,8 +74,11 @@ export default function Index() {
         {activeTab === 'Dashboard' && (
           <Dashboard onRequestClick={setSelectedRequest} onTabChange={handleTabChange} />
         )}
-        {activeTab === 'Content' && (
-          <ContentTab onRequestClick={setSelectedRequest} />
+        {activeTab === 'Requests' && (
+          <RequestsTab onRequestClick={setSelectedRequest} />
+        )}
+        {activeTab === 'Content Calendar' && (
+          <PlanningTab onRequestClick={setSelectedRequest} />
         )}
         {activeTab === 'Review' && (
           <>

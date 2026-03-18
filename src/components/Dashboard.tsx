@@ -65,7 +65,7 @@ export default function Dashboard({ onRequestClick, onTabChange }: DashboardProp
   };
 
   const statCards = [
-    { label: 'Requests in progress', count: inProgressCount, tab: 'Content' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
+    { label: 'Requests in progress', count: inProgressCount, tab: 'Requests' as TabName, borderColor: 'hsl(204, 64%, 44%)' },
     { label: reviewCount > 0 ? 'Ready for review ⚡' : 'Ready for review', count: reviewCount, tab: 'Review' as TabName, borderColor: 'hsl(28, 80%, 52%)', highlight: reviewCount > 0 },
     { label: 'Scheduled', count: scheduledCount, tab: 'Approved' as TabName, borderColor: 'hsl(168, 76%, 42%)' },
     { label: 'Published this month', count: publishedThisMonth, tab: null, borderColor: 'hsl(145, 63%, 42%)' },
