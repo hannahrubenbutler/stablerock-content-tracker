@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Request, useRequests } from '@/hooks/useData';
-import { CONTENT_TYPE_COLORS, CONTENT_TYPE_ABBR, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS } from '@/lib/constants';
+import { CONTENT_TYPE_COLORS, CONTENT_TYPE_ABBR, SERVICE_LINE_COLORS, SERVICE_LINES, STAGE_COLORS, getClientStatus } from '@/lib/constants';
 import { ContentTypeBadge } from '@/components/Badges';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, parseISO,
   addMonths, subMonths, isToday,
 } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface CalendarViewProps {
   onRequestClick: (req: Request) => void;
@@ -87,7 +88,6 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
     return null;
   };
 
-  // Stage dot color mapping
   const getStageDotColor = (stage: string) => {
     if (stage === 'Requested' || stage === 'Needs Info') return '#95A5A6';
     if (stage === 'In Progress' || stage === 'In Simplified') return '#F1C40F';
@@ -136,6 +136,7 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
             const key = format(day, 'yyyy-MM-dd');
             const dayReqs = requestsByDate[key] || [];
             const today = isToday(day);
+            const hasOverflow = dayReqs.length > 3;
             return (
               <div key={key} className={`min-h-[80px] border-b border-r border-border p-1 ${today ? 'bg-accent/10' : ''}`}>
                 <div className={`text-xs font-body mb-1 flex items-center gap-1 ${today ? 'text-accent font-bold' : 'text-muted-foreground'}`}>
@@ -167,8 +168,32 @@ export default function CalendarView({ onRequestClick }: CalendarViewProps) {
                       </button>
                     );
                   })}
-                  {dayReqs.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground font-body px-1">+{dayReqs.length - 3} more</div>
+                  {/* #12: Popover for overflow items */}
+                  {hasOverflow && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="text-[10px] text-muted-foreground font-body px-1 hover:text-accent">
+                          +{dayReqs.length - 3} more
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2 space-y-1" align="start">
+                        <p className="text-xs font-semibold font-body text-foreground mb-1.5">{format(day, 'EEEE, MMM d')}</p>
+                        {dayReqs.map((r) => {
+                          const cs = getClientStatus(r.stage);
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => onRequestClick(r)}
+                              className="w-full text-left text-xs font-body text-foreground hover:text-accent flex items-center gap-2 py-1 border-b border-border last:border-0"
+                            >
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cs.color }} />
+                              <span className="truncate flex-1">{r.title}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{cs.label}</span>
+                            </button>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </div>
               </div>
