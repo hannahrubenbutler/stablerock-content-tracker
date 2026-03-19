@@ -62,6 +62,25 @@ export default function CreativeTab({ request }: CreativeTabProps) {
     }
   };
 
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const filePath = `creatives/${request.id}/attachments/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
+      setAttachmentUrl(publicUrl);
+      setAttachmentFileName(file.name);
+      toast.success('Attachment uploaded');
+    } catch {
+      toast.error('Failed to upload attachment');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSendForApproval = async () => {
     if (!graphicUrl) { toast.error('Please upload a graphic first'); return; }
     if (!caption.trim()) { toast.error('Please add a caption'); return; }
