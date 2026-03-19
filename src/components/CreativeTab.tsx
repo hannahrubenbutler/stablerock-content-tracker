@@ -21,6 +21,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const updateRequest = useUpdateRequest();
   const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const latest = creatives.length > 0 ? creatives[creatives.length - 1] : null;
   const isClientReview = request.stage === 'Client Review';
