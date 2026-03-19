@@ -44,7 +44,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
 
   const approverName = profile?.full_name || profile?.email || '';
 
-  const canSendForApproval = !!graphicUrl && !!caption.trim();
+  const canSendForApproval = !!caption.trim();
 
   const handleGraphicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,7 +82,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   };
 
   const handleSendForApproval = async () => {
-    if (!graphicUrl) { toast.error('Please upload a graphic first'); return; }
     if (!caption.trim()) { toast.error('Please add a caption'); return; }
     setSaving(true);
     try {
@@ -396,11 +395,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             </button>
             {!canSendForApproval && (
               <p className="text-[11px] font-body text-muted-foreground mt-1.5 text-center">
-                {!graphicUrl && !caption.trim()
-                  ? 'Upload a graphic and add a caption to enable sending for approval.'
-                  : !graphicUrl
-                    ? 'Upload a graphic to enable sending for approval.'
-                    : 'Add a caption to enable sending for approval.'}
+                Add a caption to enable sending for approval.
               </p>
             )}
           </div>
