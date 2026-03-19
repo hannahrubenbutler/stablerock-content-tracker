@@ -39,6 +39,10 @@ export default function AdminAddContentForm({ onSuccess }: { onSuccess?: () => v
         internal_notes: form.internal_notes || null,
         priority: 'Medium',
         description: form.title,
+        is_recurring: form.is_recurring,
+        recurrence_pattern: form.is_recurring ? form.recurrence_pattern : null,
+        recurrence_day_of_week: form.is_recurring ? form.recurrence_day_of_week : null,
+        recurrence_end_date: form.is_recurring ? (form.recurrence_end_date || null) : null,
       } as any);
       toast.success('Content added');
       onSuccess?.();
