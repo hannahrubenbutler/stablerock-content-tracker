@@ -235,7 +235,7 @@ export function useLatestCreative(requestId: string) {
 export function useCreateCreative() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (creative: { request_id: string; version: number; graphic_url?: string; graphic_file_name?: string; caption?: string; platform?: string; scheduled_datetime?: string; status?: string; attachment_url?: string; attachment_file_name?: string }) => {
+    mutationFn: async (creative: { request_id: string; version: number; graphic_url?: string; graphic_file_name?: string; caption?: string; platform?: string; scheduled_datetime?: string; status?: string; attachment_url?: string; attachment_file_name?: string; article_title?: string; target_keyword?: string; subject_line?: string; body_content?: string; page_url?: string; event_location?: string; event_date?: string }) => {
       const { data, error } = await supabase.from('creatives').insert(creative as any).select().single();
       if (error) throw error;
       return data as Creative;
