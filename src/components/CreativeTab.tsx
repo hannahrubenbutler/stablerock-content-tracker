@@ -103,6 +103,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime || undefined,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       } else if (latest && latest.status === 'Draft') {
         await updateCreative.mutateAsync({
@@ -113,6 +115,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       } else {
         await createCreative.mutateAsync({
