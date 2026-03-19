@@ -185,6 +185,8 @@ export type Creative = {
   approved_by: string | null;
   approved_at: string | null;
   feedback: string | null;
+  attachment_url: string | null;
+  attachment_file_name: string | null;
   created_at: string;
   updated_at: string;
 };

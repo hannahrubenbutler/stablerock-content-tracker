@@ -3,8 +3,9 @@ import { Request, useCreatives, useCreateCreative, useUpdateCreative, useUploadC
 import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Paperclip, FileText, X } from 'lucide-react';
 import ContentPreview from '@/components/ContentPreview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreativeTabProps {
   request: Request;
