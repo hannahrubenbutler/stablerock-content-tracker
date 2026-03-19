@@ -115,6 +115,49 @@ export default function AdminAddContentForm({ onSuccess }: { onSuccess?: () => v
         />
       </div>
 
+      {/* Recurring */}
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={form.is_recurring}
+            onChange={(e) => setForm({ ...form, is_recurring: e.target.checked })}
+            className="rounded border-border text-accent focus:ring-accent"
+          />
+          <span className="text-xs font-body text-foreground">Recurring request</span>
+        </label>
+        {form.is_recurring && (
+          <div className="mt-3 space-y-3 pl-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Frequency</label>
+                <select value={form.recurrence_pattern} onChange={(e) => setForm({ ...form, recurrence_pattern: e.target.value })} className={inputClass}>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Day of week</label>
+                <select value={form.recurrence_day_of_week} onChange={(e) => setForm({ ...form, recurrence_day_of_week: Number(e.target.value) })} className={inputClass}>
+                  <option value={0}>Sunday</option>
+                  <option value={1}>Monday</option>
+                  <option value={2}>Tuesday</option>
+                  <option value={3}>Wednesday</option>
+                  <option value={4}>Thursday</option>
+                  <option value={5}>Friday</option>
+                  <option value={6}>Saturday</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Repeat until (optional)</label>
+              <input type="date" value={form.recurrence_end_date} onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })} className={inputClass} />
+            </div>
+          </div>
+        )}
+      </div>
+
       <div>
         <label className={labelClass}>Notes</label>
         <textarea
