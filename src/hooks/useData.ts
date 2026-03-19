@@ -187,6 +187,13 @@ export type Creative = {
   feedback: string | null;
   attachment_url: string | null;
   attachment_file_name: string | null;
+  article_title: string | null;
+  target_keyword: string | null;
+  subject_line: string | null;
+  body_content: string | null;
+  page_url: string | null;
+  event_location: string | null;
+  event_date: string | null;
   created_at: string;
   updated_at: string;
 };
