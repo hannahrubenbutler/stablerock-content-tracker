@@ -162,6 +162,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
       setFlexibleDateText('');
       setHasHardDeadline(false);
       setDeadlineText('');
+      setIsRecurring(false);
+      setRecurrencePattern('weekly');
+      setRecurrenceDayOfWeek(1);
+      setRecurrenceEndDate('');
       onSuccess?.();
       onNavigateToRequests?.();
     } catch (error) {
