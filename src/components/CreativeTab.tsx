@@ -3,8 +3,9 @@ import { Request, useCreatives, useCreateCreative, useUpdateCreative, useUploadC
 import { useAuth } from '@/hooks/useAuth';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Paperclip, FileText, X } from 'lucide-react';
 import ContentPreview from '@/components/ContentPreview';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreativeTabProps {
   request: Request;
@@ -20,6 +21,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const updateRequest = useUpdateRequest();
   const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const latest = creatives.length > 0 ? creatives[creatives.length - 1] : null;
   const isClientReview = request.stage === 'Client Review';
@@ -32,6 +34,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const [scheduledTime, setScheduledTime] = useState(latest?.scheduled_datetime ? format(parseISO(latest.scheduled_datetime), 'HH:mm') : '09:00');
   const [graphicUrl, setGraphicUrl] = useState(latest?.graphic_url || '');
   const [graphicFileName, setGraphicFileName] = useState(latest?.graphic_file_name || '');
+  const [attachmentUrl, setAttachmentUrl] = useState(latest?.attachment_url || '');
+  const [attachmentFileName, setAttachmentFileName] = useState(latest?.attachment_file_name || '');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -53,6 +57,25 @@ export default function CreativeTab({ request }: CreativeTabProps) {
       toast.success('Graphic uploaded');
     } catch {
       toast.error('Failed to upload graphic');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const filePath = `creatives/${request.id}/attachments/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from('attachments').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
+      setAttachmentUrl(publicUrl);
+      setAttachmentFileName(file.name);
+      toast.success('Attachment uploaded');
+    } catch {
+      toast.error('Failed to upload attachment');
     } finally {
       setUploading(false);
     }
@@ -80,6 +103,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime || undefined,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       } else if (latest && latest.status === 'Draft') {
         await updateCreative.mutateAsync({
@@ -90,6 +115,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       } else {
         await createCreative.mutateAsync({
@@ -101,6 +128,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime || undefined,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       }
 
@@ -201,6 +230,17 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         </div>
       )}
 
+      {/* Attachment display (visible in all states) */}
+      {latest?.attachment_url && latest?.attachment_file_name && (
+        <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
+          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <a href={latest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-sm font-body text-accent hover:underline truncate">
+            {latest.attachment_file_name}
+          </a>
+          <span className="text-[10px] font-body text-muted-foreground ml-auto">Attachment</span>
+        </div>
+      )}
+
       {/* Approval buttons */}
       {isClientReview && latest && latest.status === 'Pending Approval' && (
         <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-lg p-4">
@@ -295,6 +335,34 @@ export default function CreativeTab({ request }: CreativeTabProps) {
               placeholder="Write the post caption... Supports line breaks and emoji 😊"
               className={`${inputClass} min-h-[120px] mt-1`}
             />
+          </div>
+
+          {/* Attachment */}
+          <div>
+            <label className={labelClass}>Attachment (optional)</label>
+            <div className="mt-1">
+              {attachmentUrl ? (
+                <div className="flex items-center gap-2 bg-muted rounded px-3 py-2">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-body text-accent hover:underline truncate">
+                    {attachmentFileName}
+                  </a>
+                  <button onClick={() => { setAttachmentUrl(''); setAttachmentFileName(''); }} className="ml-auto text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => attachmentInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full h-10 border border-dashed border-border rounded-lg flex items-center justify-center gap-2 text-sm font-body text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  {uploading ? 'Uploading...' : 'Attach file (doc, pdf, etc.)'}
+                </button>
+              )}
+              <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentUpload} />
+            </div>
           </div>
 
           <div>
