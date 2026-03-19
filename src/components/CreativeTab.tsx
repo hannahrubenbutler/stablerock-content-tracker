@@ -82,7 +82,6 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   };
 
   const handleSendForApproval = async () => {
-    if (!graphicUrl) { toast.error('Please upload a graphic first'); return; }
     if (!caption.trim()) { toast.error('Please add a caption'); return; }
     setSaving(true);
     try {
