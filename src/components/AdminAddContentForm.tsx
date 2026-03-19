@@ -16,6 +16,10 @@ export default function AdminAddContentForm({ onSuccess }: { onSuccess?: () => v
     owner: 'Archway',
     contact_person: '',
     internal_notes: '',
+    is_recurring: false,
+    recurrence_pattern: 'weekly',
+    recurrence_day_of_week: 1,
+    recurrence_end_date: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
