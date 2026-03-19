@@ -34,10 +34,10 @@ export default function ReadyForReview({ requests, onRequestClick }: ReadyForRev
     enabled: requestIds.length > 0,
   });
 
-  // Fix #8: Only show requests that actually have a creative with a graphic
+  // Show requests that have any creative (graphic or attachment or caption)
   const filteredRequests = requests.filter((r) => {
     const cd = creativeData[r.id];
-    return cd?.graphic_url;
+    return cd && (cd.graphic_url || cd.caption);
   });
 
   return (
