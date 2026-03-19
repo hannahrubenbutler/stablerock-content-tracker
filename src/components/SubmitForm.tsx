@@ -28,6 +28,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
   const [dateRangeEnd, setDateRangeEnd] = useState('');
   const [flexibleDateText, setFlexibleDateText] = useState('');
   const [hasHardDeadline, setHasHardDeadline] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState('weekly');
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState(1); // Monday
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
   const [deadlineText, setDeadlineText] = useState('');
 
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
