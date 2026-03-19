@@ -4,6 +4,7 @@ export const SERVICE_LINES = [
   'Insurance',
   'HR Advisory',
   'PEO',
+  'Thought Leadership Post',
   'General / Stable Rock',
 ] as const;
 
@@ -13,6 +14,7 @@ export const SERVICE_LINE_COLORS: Record<string, string> = {
   'Insurance': '#6C3483',
   'HR Advisory': '#C0392B',
   'PEO': '#D35400',
+  'Thought Leadership Post': '#1F618D',
   'General / Stable Rock': '#2C3E50',
 };
 
