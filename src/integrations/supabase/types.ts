@@ -100,54 +100,75 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          article_title: string | null
           attachment_file_name: string | null
           attachment_url: string | null
+          body_content: string | null
           caption: string | null
           created_at: string
+          event_date: string | null
+          event_location: string | null
           feedback: string | null
           graphic_file_name: string | null
           graphic_url: string | null
           id: string
+          page_url: string | null
           platform: string
           request_id: string
           scheduled_datetime: string | null
           status: string
+          subject_line: string | null
+          target_keyword: string | null
           updated_at: string
           version: number
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          article_title?: string | null
           attachment_file_name?: string | null
           attachment_url?: string | null
+          body_content?: string | null
           caption?: string | null
           created_at?: string
+          event_date?: string | null
+          event_location?: string | null
           feedback?: string | null
           graphic_file_name?: string | null
           graphic_url?: string | null
           id?: string
+          page_url?: string | null
           platform?: string
           request_id: string
           scheduled_datetime?: string | null
           status?: string
+          subject_line?: string | null
+          target_keyword?: string | null
           updated_at?: string
           version?: number
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          article_title?: string | null
           attachment_file_name?: string | null
           attachment_url?: string | null
+          body_content?: string | null
           caption?: string | null
           created_at?: string
+          event_date?: string | null
+          event_location?: string | null
           feedback?: string | null
           graphic_file_name?: string | null
           graphic_url?: string | null
           id?: string
+          page_url?: string | null
           platform?: string
           request_id?: string
           scheduled_datetime?: string | null
           status?: string
+          subject_line?: string | null
+          target_keyword?: string | null
           updated_at?: string
           version?: number
         }
