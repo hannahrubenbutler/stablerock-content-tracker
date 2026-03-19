@@ -108,6 +108,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
           flexible_date_text: dateMode === 'flexible' ? (flexibleDateText || null) : null,
           has_hard_deadline: hasHardDeadline,
           deadline_text: hasHardDeadline ? (deadlineText || null) : null,
+          is_recurring: isRecurring,
+          recurrence_pattern: isRecurring ? recurrencePattern : null,
+          recurrence_day_of_week: isRecurring ? recurrenceDayOfWeek : null,
+          recurrence_end_date: isRecurring ? (recurrenceEndDate || null) : null,
         } as any);
 
         createdRequestCount += 1;
