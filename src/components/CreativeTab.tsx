@@ -230,6 +230,17 @@ export default function CreativeTab({ request }: CreativeTabProps) {
         </div>
       )}
 
+      {/* Attachment display (visible in all states) */}
+      {latest?.attachment_url && latest?.attachment_file_name && (
+        <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-lg px-3 py-2">
+          <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+          <a href={latest.attachment_url} target="_blank" rel="noopener noreferrer" className="text-sm font-body text-accent hover:underline truncate">
+            {latest.attachment_file_name}
+          </a>
+          <span className="text-[10px] font-body text-muted-foreground ml-auto">Attachment</span>
+        </div>
+      )}
+
       {/* Approval buttons */}
       {isClientReview && latest && latest.status === 'Pending Approval' && (
         <div className="space-y-3 bg-accent/5 border border-accent/20 rounded-lg p-4">
