@@ -228,7 +228,7 @@ export function useLatestCreative(requestId: string) {
 export function useCreateCreative() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (creative: { request_id: string; version: number; graphic_url?: string; graphic_file_name?: string; caption?: string; platform?: string; scheduled_datetime?: string; status?: string }) => {
+    mutationFn: async (creative: { request_id: string; version: number; graphic_url?: string; graphic_file_name?: string; caption?: string; platform?: string; scheduled_datetime?: string; status?: string; attachment_url?: string; attachment_file_name?: string }) => {
       const { data, error } = await supabase.from('creatives').insert(creative as any).select().single();
       if (error) throw error;
       return data as Creative;
