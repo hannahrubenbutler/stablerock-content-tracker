@@ -395,11 +395,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             </button>
             {!canSendForApproval && (
               <p className="text-[11px] font-body text-muted-foreground mt-1.5 text-center">
-                {!graphicUrl && !caption.trim()
-                  ? 'Upload a graphic and add a caption to enable sending for approval.'
-                  : !graphicUrl
-                    ? 'Upload a graphic to enable sending for approval.'
-                    : 'Add a caption to enable sending for approval.'}
+                Add a caption to enable sending for approval.
               </p>
             )}
           </div>
