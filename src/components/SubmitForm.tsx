@@ -28,6 +28,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
   const [dateRangeEnd, setDateRangeEnd] = useState('');
   const [flexibleDateText, setFlexibleDateText] = useState('');
   const [hasHardDeadline, setHasHardDeadline] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState('weekly');
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState(1); // Monday
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
   const [deadlineText, setDeadlineText] = useState('');
 
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -104,6 +108,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
           flexible_date_text: dateMode === 'flexible' ? (flexibleDateText || null) : null,
           has_hard_deadline: hasHardDeadline,
           deadline_text: hasHardDeadline ? (deadlineText || null) : null,
+          is_recurring: isRecurring,
+          recurrence_pattern: isRecurring ? recurrencePattern : null,
+          recurrence_day_of_week: isRecurring ? recurrenceDayOfWeek : null,
+          recurrence_end_date: isRecurring ? (recurrenceEndDate || null) : null,
         } as any);
 
         createdRequestCount += 1;
@@ -154,6 +162,10 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
       setFlexibleDateText('');
       setHasHardDeadline(false);
       setDeadlineText('');
+      setIsRecurring(false);
+      setRecurrencePattern('weekly');
+      setRecurrenceDayOfWeek(1);
+      setRecurrenceEndDate('');
       onSuccess?.();
       onNavigateToRequests?.();
     } catch (error) {
@@ -323,6 +335,50 @@ export default function SubmitForm({ onSuccess, onNavigateToRequests }: { onSucc
             />
           )}
         </div>
+      </div>
+
+      {/* Recurring */}
+      <div>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isRecurring}
+            onChange={(e) => setIsRecurring(e.target.checked)}
+            className="rounded border-border text-accent focus:ring-accent"
+          />
+          <span className="text-xs font-body text-foreground">This is a recurring request</span>
+        </label>
+        {isRecurring && (
+          <div className="mt-3 space-y-3 pl-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Frequency</label>
+                <select value={recurrencePattern} onChange={(e) => setRecurrencePattern(e.target.value)} className={inputClass}>
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Day of week</label>
+                <select value={recurrenceDayOfWeek} onChange={(e) => setRecurrenceDayOfWeek(Number(e.target.value))} className={inputClass}>
+                  <option value={0}>Sunday</option>
+                  <option value={1}>Monday</option>
+                  <option value={2}>Tuesday</option>
+                  <option value={3}>Wednesday</option>
+                  <option value={4}>Thursday</option>
+                  <option value={5}>Friday</option>
+                  <option value={6}>Saturday</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Repeat until (optional)</label>
+              <input type="date" value={recurrenceEndDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} className={inputClass} />
+              <p className="text-[10px] text-muted-foreground font-body mt-1">Leave blank to repeat indefinitely.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Contact Person */}

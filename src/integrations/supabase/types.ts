@@ -237,9 +237,14 @@ export type Database = {
           has_hard_deadline: boolean | null
           id: string
           internal_notes: string | null
+          is_recurring: boolean
           linkedin_post_url: string | null
           owner: string | null
+          parent_request_id: string | null
           priority: Database["public"]["Enums"]["request_priority"]
+          recurrence_day_of_week: number | null
+          recurrence_end_date: string | null
+          recurrence_pattern: string | null
           service_line: string
           stage: Database["public"]["Enums"]["request_stage"]
           submitter_name: string | null
@@ -264,9 +269,14 @@ export type Database = {
           has_hard_deadline?: boolean | null
           id?: string
           internal_notes?: string | null
+          is_recurring?: boolean
           linkedin_post_url?: string | null
           owner?: string | null
+          parent_request_id?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
+          recurrence_day_of_week?: number | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
           service_line: string
           stage?: Database["public"]["Enums"]["request_stage"]
           submitter_name?: string | null
@@ -291,9 +301,14 @@ export type Database = {
           has_hard_deadline?: boolean | null
           id?: string
           internal_notes?: string | null
+          is_recurring?: boolean
           linkedin_post_url?: string | null
           owner?: string | null
+          parent_request_id?: string | null
           priority?: Database["public"]["Enums"]["request_priority"]
+          recurrence_day_of_week?: number | null
+          recurrence_end_date?: string | null
+          recurrence_pattern?: string | null
           service_line?: string
           stage?: Database["public"]["Enums"]["request_stage"]
           submitter_name?: string | null
@@ -302,7 +317,15 @@ export type Database = {
           updated_at?: string
           what_needed_from_client?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "requests_parent_request_id_fkey"
+            columns: ["parent_request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
