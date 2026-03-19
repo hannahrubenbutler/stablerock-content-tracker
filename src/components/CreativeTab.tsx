@@ -128,6 +128,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
           platform,
           scheduled_datetime: scheduledDatetime || undefined,
           status: 'Pending Approval',
+          attachment_url: attachmentUrl || undefined,
+          attachment_file_name: attachmentFileName || undefined,
         });
       }
 
