@@ -34,6 +34,8 @@ export default function CreativeTab({ request }: CreativeTabProps) {
   const [scheduledTime, setScheduledTime] = useState(latest?.scheduled_datetime ? format(parseISO(latest.scheduled_datetime), 'HH:mm') : '09:00');
   const [graphicUrl, setGraphicUrl] = useState(latest?.graphic_url || '');
   const [graphicFileName, setGraphicFileName] = useState(latest?.graphic_file_name || '');
+  const [attachmentUrl, setAttachmentUrl] = useState(latest?.attachment_url || '');
+  const [attachmentFileName, setAttachmentFileName] = useState(latest?.attachment_file_name || '');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
