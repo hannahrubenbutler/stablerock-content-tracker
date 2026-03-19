@@ -326,6 +326,34 @@ export default function CreativeTab({ request }: CreativeTabProps) {
             />
           </div>
 
+          {/* Attachment */}
+          <div>
+            <label className={labelClass}>Attachment (optional)</label>
+            <div className="mt-1">
+              {attachmentUrl ? (
+                <div className="flex items-center gap-2 bg-muted rounded px-3 py-2">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-body text-accent hover:underline truncate">
+                    {attachmentFileName}
+                  </a>
+                  <button onClick={() => { setAttachmentUrl(''); setAttachmentFileName(''); }} className="ml-auto text-muted-foreground hover:text-foreground">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => attachmentInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full h-10 border border-dashed border-border rounded-lg flex items-center justify-center gap-2 text-sm font-body text-muted-foreground hover:border-accent hover:text-accent transition-colors"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  {uploading ? 'Uploading...' : 'Attach file (doc, pdf, etc.)'}
+                </button>
+              )}
+              <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentUpload} />
+            </div>
+          </div>
+
           <div>
             <label className={labelClass}>Platform</label>
             <select value={platform} onChange={(e) => setPlatform(e.target.value)} className={`${inputClass} mt-1`}>
