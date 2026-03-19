@@ -85,12 +85,12 @@ export default function ReviewTab({ onRequestClick }: ReviewTabProps) {
     enabled: requestIds.length > 0,
   });
 
-  // #1: Only show in "Ready for Review" if they have a creative with graphic_url
+  // Show in "Ready for Review" if they have a creative with graphic or caption
   const readyForReview = reviewRequests.filter((r) => {
     const cs = getClientStatus(r.stage);
     if (cs.label !== 'Ready for Review') return false;
     const creative = creativeMap[r.id];
-    return creative && creative.graphic_url;
+    return creative && (creative.graphic_url || creative.caption);
   });
 
   const inRevision = reviewRequests.filter((r) => {

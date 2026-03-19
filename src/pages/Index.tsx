@@ -40,11 +40,10 @@ export default function Index() {
       if (reviewCandidateIds.length === 0) return 0;
       const { data, error } = await supabase
         .from('creatives')
-        .select('request_id')
-        .in('request_id', reviewCandidateIds)
-        .not('graphic_url', 'is', null);
+        .select('request_id, graphic_url, caption')
+        .in('request_id', reviewCandidateIds);
       if (error) throw error;
-      const unique = new Set((data || []).map((c: any) => c.request_id));
+      const unique = new Set((data || []).filter((c: any) => c.graphic_url || c.caption).map((c: any) => c.request_id));
       return unique.size;
     },
     enabled: reviewCandidateIds.length > 0,
