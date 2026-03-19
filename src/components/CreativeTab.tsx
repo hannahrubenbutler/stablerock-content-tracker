@@ -44,7 +44,7 @@ export default function CreativeTab({ request }: CreativeTabProps) {
 
   const approverName = profile?.full_name || profile?.email || '';
 
-  const canSendForApproval = !!graphicUrl && !!caption.trim();
+  const canSendForApproval = !!caption.trim();
 
   const handleGraphicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
